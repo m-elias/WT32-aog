@@ -1,0 +1,9 @@
+{
+  "Kp":40,
+  "lowPWM":10,
+  "wasOffset":0,
+  "minPWM":9,
+  "highPWM":60,
+  "steerSensorCounts":30,
+  "AckermanFix":1
+}

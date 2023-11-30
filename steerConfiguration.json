@@ -1,0 +1,15 @@
+{
+  "InvertWAS":0,
+  "IsRelayActiveHigh":0,
+  "MotorDriveDirection":0,
+  "SingleInputWAS":1,
+  "CytronDriver":1,
+  "SteerSwitch":0,
+  "SteerButton":0,
+  "ShaftEncoder":0,
+  "PressureSensor":0,
+  "CurrentSensor":0,
+  "PulseCountMax":5,
+  "IsDanfoss":0,
+  "IsUseY_Axis":0
+}
