@@ -11,9 +11,9 @@
     WT32 CAN-R (33) to CAN-R driver (CAN data)
     WT32 CAN-T (32) to CAN-T driver (CAN data)
 
-    WT32 I/O Pin WAS (12) to I/O pin was-high (AMP23 input pin 2)
+    WT32 I/O Pin WAS (35) to I/O pin was-high (AMP23 input pin 2)
 
-    WT32 I/O Pin work (35) to button opto (AMP23 input pin 9)
+    WT32 I/O Pin work (12) to button opto (AMP23 input pin 9)
     WT32 I/O Pin steer (36) to button opto (AMP23 input pin 8)
     WT32 I/O Pin remote (39) to button opto (AMP23 input pin 10)
 

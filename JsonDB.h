@@ -75,6 +75,7 @@ struct Configuration {
   uint8_t imu_port;
   uint16_t imu_tickRate;
   uint8_t was_type;
+  uint8_t was_resolution;
   uint8_t was_pin;
   uint8_t ls_pin;
   uint8_t ls_filter;
@@ -127,12 +128,13 @@ public:
       conf.imu_port = doc["imu"]["port"] | 3;
       conf.imu_tickRate = doc["imu"]["tickRate"] | 10; // run every 10ms (100Hz)
       conf.was_type = doc["was"]["type"] | 1;
-      conf.was_pin = doc["was"]["pin"] | 12;
+      conf.was_resolution = doc["was"]["resolution"] | 12;
+      conf.was_pin = doc["was"]["pin"] | 35;
       conf.ls_pin = doc["ls"]["pin"] | 39;
       conf.ls_filter = doc["ls"]["filter"] | 2;
       conf.remote_pin = doc["remotePin"] | 39;
       conf.steer_pin = doc["steerPin"] | 36;
-      conf.work_pin = doc["workPin"] | 35;
+      conf.work_pin = doc["workPin"] | 12;
       conf.reportTickRate = doc["reportTickRate"] | 10000; // run every 100ms (10Hz)
       conf.globalTickRate = doc["globalTickRate"] | 10000; // run every 100ms (10Hz)
     });
@@ -206,6 +208,7 @@ public:
       doc["imu"]["port"] = conf.imu_port;
       doc["imu"]["tickRate"] = conf.imu_tickRate;
       doc["was"]["type"] = conf.was_type;
+      doc["was"]["resolution"] = conf.was_resolution;
       doc["was"]["pin"] = conf.was_pin;
       doc["ls"]["pin"] = conf.ls_pin;
       doc["ls"]["filter"] = conf.ls_filter;

@@ -37,7 +37,7 @@ public:
     (_db->conf.imu_type == 1)? imu = new ImuRvc(_db, _db->conf.imu_port) : imu = new ImuClassic(_db, _db->conf.imu_tickRate);
 
     // Create and initialize the object to read the WAS sensor ###############################################################################
-    (_db->conf.was_type == 1)? was = new SensorInternalReader(_db, _db->conf.was_pin) : was = new SensorADS1115Reader(_db, _db->conf.was_pin);
+    (_db->conf.was_type == 1)? was = new SensorInternalReader(_db, _db->conf.was_pin, _db->conf.was_resolution) : was = new SensorADS1115Reader(_db, _db->conf.was_pin);
     delay(100);
 
     // time configuration variables

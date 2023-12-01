@@ -30,7 +30,8 @@
   },
   "was":{
 	"type":1,
-	"pin":12
+	"resolution":12,
+	"pin":35
   },
   "ls":{
     "pin":39,
@@ -38,7 +39,7 @@
   },
   "remotePin":39,
   "steerPin":36,
-  "workPin":35,
+  "workPin":12,
   "reportTickRate":10000,
   "globalTickRate":10000
 }

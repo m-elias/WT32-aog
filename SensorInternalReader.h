@@ -22,15 +22,17 @@
 
 class SensorInternalReader: public Sensor {
 public:
-    SensorInternalReader(JsonDB* _db, uint8_t _pin, uint8_t filterConfig=5):filter(filterConfig, filterConfig, 0.01){
+    SensorInternalReader(JsonDB* _db, uint8_t _pin, uint8_t _resolution=12, uint8_t filterConfig=5):filter(filterConfig, filterConfig, 0.01){
 		pin = _pin;
+		resolution = _resolution;
 		db=_db;
 	}
 	
   uint8_t counter = 0;
+  uint8_t resolution = 0;
 
 	void update(){
-		value = filter.updateEstimate(analogRead(pin))/1023.0;// between 0-1.0 //1023
+		value = filter.updateEstimate(analogRead(pin))/(1 << resolution);// between 0-1.0 //2^resolution
 		setAngle();
 	}
 private:

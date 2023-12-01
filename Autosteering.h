@@ -45,7 +45,7 @@ public:
     // Create driver, interact with PWM #######################################################################################################
     (db->conf.driver_type==1)? driver = new DriverCytron(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]) : driver = new DriverIbt(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]);
     // Create sensor for automatic stop autosteering (pressure/current)
-    if (db->steerC.PressureSensor || db->steerC.CurrentSensor) loadSensor = new SensorInternalReader(_db, db->conf.ls_pin, db->conf.ls_filter);
+    if (db->steerC.PressureSensor || db->steerC.CurrentSensor) loadSensor = new SensorInternalReader(_db, db->conf.ls_pin, 12, db->conf.ls_filter);
     // Loop configuration variables
     tickLengthMs = 1000 / db->conf.globalTickRate;
   }

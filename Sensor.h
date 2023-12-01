@@ -25,7 +25,7 @@ public:
       db=_db;
     }
 
-	float value = 0.0;//value:0-1.0 //1023
+	float value = 0.0;//value:0-1.0
 	float angle = 0.0;
   uint8_t counter = 0;
 	
