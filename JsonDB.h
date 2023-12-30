@@ -259,7 +259,11 @@ public:
 		File file = fs->open(filename, type);
 		if(!file){
 			Serial.printf("Failed to open '%s' file\n", filename);
-			return false;
+      if((strcmp(filename, "/configuration.json")==0) || (strcmp(filename, "/steerSettings.json")==0) || (strcmp(filename, "/steerconfiguration.json")==0)){
+        file = fs->open(filename, "w");
+        file.print("{\n\"v\":0\n}");
+        _type=1;
+      } else	return false;
 		}
 		DynamicJsonDocument doc(jsonSize);
 		DeserializationError error = deserializeJson(doc, file);
