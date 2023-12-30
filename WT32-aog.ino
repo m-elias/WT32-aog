@@ -6,20 +6,24 @@
     WT32 Serial 2 RX (5) to F9P Position receiver TX1 (Position data)
     WT32 Serial 2 TX (17) to F9P Position receiver RX1 (RTCM data for RTK)
 
-    WT32 Serial 3 RX (2) to IMU SCL pin for RVC mode (IMU data)
+    WT32 Serial1 RX (2) to IMU SCL pin for RVC mode (IMU data)
 
     WT32 CAN-R (33) to CAN-R driver (CAN data)
     WT32 CAN-T (32) to CAN-T driver (CAN data)
 
-    WT32 I/O Pin WAS (35) to I/O pin was-high (AMP23 input pin 2)
+    WT32 I/O Pin WAS (35 in case of internal reader) to I/O pin was-high (AMP23 input pin 2)
 
-    WT32 I/O Pin work (12) to button opto (AMP23 input pin 9)
+    WT32 I/O Pin SDA (15 in case of external reader) to ADS1115 SDA
+    WT32 I/O Pin SCL (14 in case of external reader) to ADS1115 SCL
+    ADS1115 A0 Pin (in case of external reader) to I/O pin was-high (AMP23 input pin 2)
+
+    WT32 I/O Pin work (1) to button opto (AMP23 input pin 9)
     WT32 I/O Pin steer (36) to button opto (AMP23 input pin 8)
     WT32 I/O Pin remote (39) to button opto (AMP23 input pin 10)
 
-    WT32 I/O Pin dir (15) to cytron (1)
+    WT32 I/O Pin dir (0) to cytron (1)
     WT32 I/O Pin pwm (4) to cytron (2)
-    WT32 I/O Pin pwm2 (0) to cytron (3) for cytron modified
+    WT32 I/O Pin pwm2 (12) to cytron (3) for cytron modified
 
     Configuration of receiver
     Position F9P
@@ -90,10 +94,14 @@ void setup(){
   Serial.print("AOG board started @ IP address: ");
   Serial.println(ETH.localIP());
 
-  // Register UDP callback function to server & port
+  // Register UDP callback functions to server & ports
   if (udp.connect(db.conf.server_ip, db.conf.server_autosteer_port)){
-    Serial.println("UDP connected");
+    Serial.println("UDP connected to autosteer port");
     udp.onPacket([](AsyncUDPPacket packet){ aog.parseUdp(packet);});
+  }
+  if (udp.connect(db.conf.server_ip, db.conf.server_ntrip_port)){
+    Serial.println("UDP connected to ntrip port");
+    udp.onPacket([](AsyncUDPPacket packet){ aog.udpNtrip(packet);});
   }
 
   Serial.println(F("\nSetup complete, waiting for AgOpenGPS"));

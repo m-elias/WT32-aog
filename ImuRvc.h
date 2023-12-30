@@ -22,15 +22,15 @@
 
 class ImuRvc: public Imu{
 public:
-	ImuRvc(JsonDB* _db, uint8_t _port=3){
+	ImuRvc(JsonDB* _db, uint8_t _port=1){
 		db = _db;
     if(_port > 8){//means it is not a Serial but a pin # for defining Teensy RX
       serial = &Serial1;//Rx on pin 15
       //serial->setRX(_port);//IMU SDA (18 in AIO-2.5/4)  SCL not needed. Not possible on 18, not a xbar pin.!!!
     }
-		else if(_port == 1) serial = &Serial;//Rx on pin 0
+		else if(_port == 1) serial = &Serial1;//Rx on pin 0
 		else if(_port == 2) serial = &Serial2;//Rx on pin 7
-		else if(_port == 3) serial = &Serial1;//Rx on pin 15
+		else if(_port == 3) serial = &Serial;//Rx on pin 15
     /*
 		else if(_port == 4) serial = &Serial4;//Rx on pin 16
 		else if(_port == 5) serial = &Serial5;//Rx on pin 21
@@ -45,8 +45,8 @@ public:
 
 		getOffset();
 		isOn = true;
-		serial->begin(115200, SERIAL_8N1, 2);//fix baudrate as per datasheet
-    delay(100);//TODO MCB
+		serial->begin(115200, SERIAL_8N1, 2);//fix baudrate as per datasheet, RX on pin 2 of wt32, no need for TX
+    delay(100);
     Serial.printf("Imu initialised on p: %d\n", _port);
 	}
 

@@ -257,19 +257,18 @@ public:
             }
             break;
           }
-        case 100: // NTRIP
-          {
-            uint16_t size = packet.length();
-            uint8_t NTRIPData[size - 4];
-            for (int i = 4; i < size; i++) NTRIPData[i - 4] = data[i];
-
-            position.gnss.sendNtrip(NTRIPData, size - 4);
-            break;
-          }
       }
     }else{
       Serial.println("Unknown packet!!!");
     }
+  }
+
+  void udpNtrip(AsyncUDPPacket packet){
+    uint16_t size = packet.length();
+    uint8_t NTRIPData[size - 4];
+    for (int i = 4; i < size; i++) NTRIPData[i - 4] = packet.data()[i];
+
+    position.gnss.sendNtrip(NTRIPData, size - 4);
   }
 
 	/*

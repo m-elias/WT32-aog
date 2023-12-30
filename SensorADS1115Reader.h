@@ -40,7 +40,9 @@ public:
     else if(wireN == 2) i2c = &Wire2;
     */
 
-    i2c->begin();
+    if(strcmp(ARDUINO_BOARD,"WT32_ETH01")==0) i2c->begin(15,14,400000);//sda,scl,freq
+    else i2c->begin();//21,22 for esp32
+
     // Check ADC
     i2c->beginTransmission(pin);//i2cAddress
     /* Configuration of pointer register

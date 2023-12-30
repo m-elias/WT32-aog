@@ -43,6 +43,7 @@ public:
     // time configuration variables
     previousTime = millis();
     reportPeriodMs = 1000/_db->conf.reportTickRate;
+    reportKPeriodMs = reportPeriodMs/5;
  }
 
   GNSS gnss;
@@ -52,11 +53,18 @@ public:
 	bool report(){
 		// set timer to run periodically
     uint32_t now = millis();
+
+		//check for internal was update, 5 ties faster as per kalman filter
+ 		if((db->conf.was_type == 1) && (now - previousKTime > reportKPeriodMs)){
+      previousKTime = now;
+      was->update();
+    }
+
 		if(now - previousTime < reportPeriodMs) return false;
 		previousTime = now;
     
 		//actual code to run periodically
-		was->update();
+    if(db->conf.was_type != 1) was->update(); //update if was is not internal reader
 		imu->parse();
 		gnss.parse();
 
@@ -84,6 +92,8 @@ private:
 	AsyncUDP* udp;
  	JsonDB* db;
 	uint32_t previousTime;
+	uint32_t previousKTime;
 	uint16_t reportPeriodMs;
+	uint16_t reportKPeriodMs;
 };
 #endif

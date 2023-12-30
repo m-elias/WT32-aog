@@ -15,9 +15,9 @@
 	"autosteerPort":8888,
 	"destinationPort":9999
   },
-  "driver":{
+"driver":{
 	"type":1,
-	"pin":[15,4,0]
+	"pin":[0,4,12]
   },
   "gnss":{
 	"port":2,
@@ -25,7 +25,7 @@
   },
   "imu":{
 	"type":1,
-	"port":3,
+	"port":1,
 	"tickRate":11000
   },
   "was":{
@@ -39,7 +39,7 @@
   },
   "remotePin":39,
   "steerPin":36,
-  "workPin":12,
+  "workPin":1,
   "reportTickRate":10000,
   "globalTickRate":10000
 }
