@@ -30,33 +30,39 @@ class Autosteering {
 public:
   Autosteering() {}
 
-  void begin(JsonDB* _db, AsyncUDP* udpService){
+  void begin(JsonDB* _db, AsyncUDP* udpService, bool udpDebug=false, bool sensorsDebug=false){
     db = _db;
     udp = udpService;
-    position = Position(db, udpService);
+    debugUdp = udpDebug;
+    position = Position(db, udpService, sensorsDebug);
     delay(1000);//TODO MCB
     //TODO MCB define pwm frequency for esp next line is for teensy
     //analogWriteFrequency(db->conf.driver_pin[0], 490);
+    /*
     //keep pulled high and drag low to activate, noise free safe
     pinMode(db->conf.work_pin, INPUT_PULLUP);
     pinMode(db->conf.steer_pin, INPUT_PULLUP);
     pinMode(db->conf.remote_pin, INPUT_PULLUP);
+    Serial.printf("Setted work pin: %d, steer pin: %d, remote pin: %d\n",db->conf.work_pin, db->conf.steer_pin, db->conf.remote_pin);
+    */
 
     // Create driver, interact with PWM #######################################################################################################
     (db->conf.driver_type==1)? driver = new DriverCytron(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]) : driver = new DriverIbt(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]);
     // Create sensor for automatic stop autosteering (pressure/current)
     if (db->steerC.PressureSensor || db->steerC.CurrentSensor) loadSensor = new SensorInternalReader(_db, db->conf.ls_pin, 12, db->conf.ls_filter);
     // Loop configuration variables
-    tickLengthMs = 1000 / db->conf.globalTickRate;
+    tickLengthMs = 1000000 / db->conf.globalTickRate;
   }
 
   void parseUdp(AsyncUDPPacket packet){
+    Serial.print("Udp packet captured.\n");
     if (packet.length() < 5) return;
-
+    
     uint8_t data[packet.length()+1];
     memcpy(data, packet.data(), packet.length());
 
     if (data[0] == 0x80 && data[1] == 0x81 && data[2] == 0x7F){ //Data
+      if(debugUdp) Serial.printf("Udp packet captured frame: %u\n", data[3]);
       switch (data[3]) {
         case 254: // 0xFE Autosteering
           {
@@ -105,7 +111,10 @@ public:
             for (uint8_t i = 2; i < PGN_253_Size; i++) CK_A = (CK_A + PGN_253[i]);
             PGN_253[PGN_253_Size] = CK_A;
 
-            udp->writeTo(PGN_253, sizeof(PGN_253), db->conf.server_ip, db->conf.server_destination_port);
+            //udp->writeTo(PGN_253, sizeof(PGN_253), db->conf.server_ip, db->conf.server_destination_port);
+            AsyncUDPMessage udpM = AsyncUDPMessage(PGN_253_Size+1);
+            udpM.write(PGN_253, PGN_253_Size+1);
+            udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
 
             //Steer Data 2  ###############################################################################
             if (db->steerC.PressureSensor || db->steerC.CurrentSensor) {
@@ -138,7 +147,11 @@ public:
                 for (uint8_t i = 2; i < PGN_250_Size; i++) CK_A = (CK_A + PGN_250[i]);
                 PGN_250[PGN_250_Size] = CK_A;
 
-                udp->writeTo(PGN_250, sizeof(PGN_250), db->conf.server_ip, db->conf.server_destination_port);
+                //udp->writeTo(PGN_250, sizeof(PGN_250), db->conf.server_ip, db->conf.server_destination_port);
+                AsyncUDPMessage udpM = AsyncUDPMessage(PGN_250_Size+1);
+                udpM.write(PGN_250, PGN_250_Size+1);
+                udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
+
                 loadSensor->counter = 0;
               }
             }
@@ -220,7 +233,10 @@ public:
             switchByte |= digitalRead(db->conf.work_pin);          //put workswitch status in bit 0 position
             helloFromAutoSteer[9] = switchByte;
 
-            udp->writeTo(helloFromAutoSteer, sizeof(helloFromAutoSteer), db->conf.server_ip, db->conf.server_destination_port);
+            //udp->writeTo(helloFromAutoSteer, sizeof(helloFromAutoSteer), db->conf.server_ip, db->conf.server_destination_port);
+            AsyncUDPMessage udpM = AsyncUDPMessage(sizeof(helloFromAutoSteer));
+            udpM.write(helloFromAutoSteer, sizeof(helloFromAutoSteer));
+            udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
             break;
           }
         case 201: // change ip
@@ -253,13 +269,16 @@ public:
               for (uint8_t i = 2; i < sizeof(scanReply) - 1; i++) CK_A = (CK_A + scanReply[i]);
               scanReply[sizeof(scanReply) - 1] = CK_A;
 
-              udp->writeTo(scanReply, sizeof(scanReply), db->conf.server_ip, db->conf.server_destination_port);
+              //udp->writeTo(scanReply, sizeof(scanReply), db->conf.server_ip, db->conf.server_destination_port);
+              AsyncUDPMessage udpM = AsyncUDPMessage(sizeof(scanReply));
+              udpM.write(scanReply, sizeof(scanReply));
+              udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
             }
             break;
           }
       }
     }else{
-      Serial.println("Unknown packet!!!");
+      if(debugUdp) Serial.println("Unknown packet!!!");
     }
   }
 
@@ -269,6 +288,7 @@ public:
     for (int i = 4; i < size; i++) NTRIPData[i - 4] = packet.data()[i];
 
     position.gnss.sendNtrip(NTRIPData, size - 4);
+    if(debugUdp) Serial.print("Udp packet captured for Ntrip\n");
   }
 
 	/*
@@ -341,7 +361,7 @@ private:
 	uint32_t tickLengthMs, lastLoopTime;
   // status
   uint8_t guidanceStatus = 0;
-  bool guidanceStatusChanged = false;
+  bool guidanceStatusChanged = false, debugUdp=false;
   // Angle goal
   float steerAngleSetPoint = 0; //the desired angle from AgOpen
   // Networt disconnection check

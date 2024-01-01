@@ -162,11 +162,19 @@ class GNSS{
 public:
   GNSS():position(0,0,0){}
 	GNSS(uint8_t _port=2, uint32_t _baudRate=115200):position(0,0,0){
+    uint8_t rxP=5;
+    uint8_t txP=17;
+
 		if(_port == 1) serial = &Serial1;
-		else if(_port == 2) serial = &Serial2;
+		else if(_port == 2) {
+      serial = &Serial2;
+      //pin definition required for esp32
+      rxP=5;
+      txP=17;
+    }
 //		else if(_port == 3) serial = &Serial3;
 		baudRate = _baudRate;
-    serial->begin(baudRate);
+    serial->begin(baudRate, SERIAL_8N1, rxP, txP);//begin(baudRate); //pin definition required for esp32
     //serial->addMemoryForRead(rxBuffer, bufferSize);
     //serial->addMemoryForWrite(txBuffer, bufferSize);
     delay(100);//TODO MCB
@@ -181,48 +189,49 @@ public:
   bool isUsed=false;
   
 	bool parse(){
-    if(serial->available() == 0) return false;
+    bool isParsed = false;
+    while(serial->available() != 0){
+      char c = serial->read();
+      if(c=='\n'){//reads a 'new line' character
+        if(rxBuffer[bufferCounter-3]!='*') return false;//identify that it is completed, the message has a checksum to compare
 
-    char c = serial->read();
-    if(c=='\n'){//reads a 'new line' character
-      if(rxBuffer[bufferCounter-3]!='*') return false;//identify that it is completed, the message has a checksum to compare
+        rxBuffer[bufferCounter]='\0';//ends the string in the correct position
+        NMEA nmea(rxBuffer, bufferCounter);
+        if(!nmea.m) return false;//checks if the message exist
+        if(!nmea.m->valid) return false;//checks if the message is valid
+        //updates the gnss variables from the message data
+        if(strcmp(nmea.type,"VTG")==0){
+          VTG* m = (VTG*)nmea.m;
+          speed = m->speedKmHr/3.6;
+          speedKnot = m->speedKnot;
+          //Serial.printf("VTG speed: %.2f\n", speed);
+        }else{
+          GGA* m = (GGA*)nmea.m;
+          if(abs(m->lon) == 0.0) return false;
+          //Serial.printf("GGA time: %.2f\n", m->time);
+          longitude = m->lon;
+          latitude = m->lat;
+          altitude = m->alt;
+          time = m->time;
+          fixQuality = m->fixQ;
+          sat_count = m->sat_count;
+          hdop = m->hdop;
+          dgps_age = m->dgps_age;
 
-      rxBuffer[bufferCounter]='\0';//ends the sting in the correct position
-      NMEA nmea(rxBuffer, bufferCounter);
-      if(!nmea.m) return false;//checks if the message exist
-      if(!nmea.m->valid) return false;//checks if the message is valid
-      //updates the gnss variables from the message data
-      if(strcmp(nmea.type,"VTG")==0){
-        VTG* m = (VTG*)nmea.m;
-        speed = m->speedKmHr/3.6;
-        speedKnot = m->speedKnot;
-        //Serial.printf("VTG speed: %.2f\n", speed);
-      }else{
-        GGA* m = (GGA*)nmea.m;
-        if(abs(m->lon) == 0.0) return false;
-        //Serial.printf("GGA time: %.2f\n", m->time);
-        longitude = m->lon;
-        latitude = m->lat;
-        altitude = m->alt;
-        time = m->time;
-        fixQuality = m->fixQ;
-        sat_count = m->sat_count;
-        hdop = m->hdop;
-        dgps_age = m->dgps_age;
-
-        Vector2 pos2D(0,0);
-        pos2D.copy(getPositionMeters());
-        position = Vector3(pos2D.x, altitude, pos2D.y);
+          Vector2 pos2D(0,0);
+          pos2D.copy(getPositionMeters());
+          position = Vector3(pos2D.x, altitude, pos2D.y);
+        }
+        isUsed = false;//identify that the object contains new info (that when is used will be marked accordingly)
+        isParsed = true;
       }
-      isUsed = false;//identify that the object contains new info (that when is used will be marked accordingly)
-      return true;
+      
+      bufferCounter = (c=='$')? 0 : bufferCounter+1;//updates the count of characters in buffer (rests when is a new line)
+      rxBuffer[bufferCounter] = c;//stores the char in the buffer
+      //if(bufferCounter==0) Serial.println();
+      //Serial.print(c);
     }
-    
-    bufferCounter = (c=='$')? 0 : bufferCounter+1;//updates the count of characters in buffer (rests when is a new line)
-    rxBuffer[bufferCounter] = c;//stores the char in the buffer
-    //if(bufferCounter==0) Serial.println();
-    //Serial.print(c);
-    return false;
+    return isParsed;
 	}
 
 	Vector2 getPositionMeters(){

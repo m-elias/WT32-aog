@@ -29,9 +29,10 @@
 class Position{
 public:
   Position():gnss(2,115200){}
-	Position(JsonDB* _db, AsyncUDP* udpService):gnss(_db->conf.gnss_port, _db->conf.gnss_baudRate){
+	Position(JsonDB* _db, AsyncUDP* udpService, bool sensorsDebug=false):gnss(_db->conf.gnss_port, _db->conf.gnss_baudRate){
 		udp = udpService;
     db = _db;
+    debugSensors = sensorsDebug;
 
     // Create imu, interact with sensor ######################################################################################################
     (_db->conf.imu_type == 1)? imu = new ImuRvc(_db, _db->conf.imu_port) : imu = new ImuClassic(_db, _db->conf.imu_tickRate);
@@ -42,7 +43,7 @@ public:
 
     // time configuration variables
     previousTime = millis();
-    reportPeriodMs = 1000/_db->conf.reportTickRate;
+    reportPeriodMs = 1000000/_db->conf.reportTickRate;
     reportKPeriodMs = reportPeriodMs/5;
  }
 
@@ -69,22 +70,28 @@ public:
 		gnss.parse();
 
     // Build the new PANDA sentence ################################################################
-    char nmea[100];
-    sprintf(nmea, "$PANDA,%lu,%.8f,%c,%.8f,%c,%u,%u,%.2f,%.4f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f*",
+    char nmea[120];
+    sprintf(nmea, "$PANDA,%lu,%.5f,%s,%.5f,%s,%u,%u,%.2f,%.4f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f\0",
                   gnss.time, abs(gnss.latitude), (gnss.latitude < 0)?"S":"N", 
                   abs(gnss.longitude), (gnss.longitude < 0)?"E":"W", gnss.fixQuality, 
                   gnss.sat_count, gnss.hdop, gnss.altitude, gnss.dgps_age, gnss.speedKnot, 
                   imu->rotation.y, imu->rotation.x, imu->rotation.z, imu->acceleration.y);
     // Calculate checksum
     int16_t sum = 0;
-    for (uint8_t inx = 1; inx < 110; inx++) {// The checksum calc starts after '$' and ends before '*'
-      if (nmea[inx] == '*') break;// '*' Indicates end of data and start of checksum
-      sum ^= nmea[inx];  // Build checksum
-    }
-    sprintf(nmea, "%s%04X\r\n",nmea, sum);//add the checksum in hex
+    uint8_t strSize = strlen(nmea);
+    for (uint8_t inx = 1; inx < strSize; inx++) sum ^= nmea[inx];  // Build checksum
+    sprintf(nmea, "%s*%04X\r\n\0",nmea, sum);//add the checksum in hex
+
+    if(debugSensors){
+      Serial.printf("Was value: %.4f, was angle: %.4f\n", was->value, was->angle);
+      Serial.print(nmea);
+      Serial.print("Sending upd packet... (");Serial.print(db->conf.server_ip);Serial.printf(":%d)\n",db->conf.server_destination_port);
+	  }
 
 		//send position to udp server #################################################################
-    udp->writeTo((uint8_t*)nmea, strlen(nmea), db->conf.server_ip, db->conf.server_destination_port);
+    AsyncUDPMessage udpM = AsyncUDPMessage(strSize+7);
+    udpM.write((uint8_t*)nmea, strSize+7);
+    udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
 		return true;
 	}
 
@@ -95,5 +102,6 @@ private:
 	uint32_t previousKTime;
 	uint16_t reportPeriodMs;
 	uint16_t reportKPeriodMs;
+  bool debugSensors=false;
 };
 #endif

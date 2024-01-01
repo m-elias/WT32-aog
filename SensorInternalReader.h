@@ -26,6 +26,7 @@ public:
 		pin = _pin;
 		resolution = _resolution;
 		db=_db;
+    Serial.printf("Internal sensor reader initialised on p: %d\n", _pin);
 	}
 	
   uint8_t counter = 0;

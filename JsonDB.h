@@ -97,36 +97,38 @@ public:
   SteerSettings steerS;
   SteerConfig steerC;
 
-  void begin(fs::FS &_fs){
+  void begin(fs::FS &_fs, bool resetConfFile=false){
     fs = &_fs;
     FIFO[0].file[0]='\0';
     FIFO[0].callback=[](JsonDocument& doc){};
     FIFO[0].type=0;
     FIFO[0].jsonSize=0;
 
+    if(resetConfFile) resetConfigurationFiles();
+
     read(configurationFile,[&](JsonDocument& doc){
       // Copy values from the JsonDocument to the Config
       strcpy(conf.webFolder, doc["webfolders"] | "/ers/static/");
       strcpy(conf.steerSettingsFile, doc["steerSettingsFile"] | "/steerSettings.json");
       strcpy(conf.steerConfigurationFile, doc["steerConfigurationFile"] | "/steerConfiguration.json");
-      conf.eth_ip = IPAddress(doc["eth"]["ip"][0] | 192, doc["eth"]["ip"][1] | 168, doc["eth"]["ip"][2] | 2, doc["eth"]["ip"][3] | 123);
-      conf.eth_gateway = IPAddress(doc["eth"]["gateway"][0] | 192, doc["eth"]["gateway"][1] | 168, doc["eth"]["gateway"][2] | 2, doc["eth"]["gateway"][3] | 1);
+      conf.eth_ip = IPAddress(doc["eth"]["ip"][0] | 192, doc["eth"]["ip"][1] | 168, doc["eth"]["ip"][2] | 1, doc["eth"]["ip"][3] | 123);
+      conf.eth_gateway = IPAddress(doc["eth"]["gateway"][0] | 192, doc["eth"]["gateway"][1] | 168, doc["eth"]["gateway"][2] | 1, doc["eth"]["gateway"][3] | 1);
       conf.eth_subnet = IPAddress(doc["eth"]["subnet"][0] | 255, doc["eth"]["subnet"][1] | 255, doc["eth"]["subnet"][2] | 255, doc["eth"]["subnet"][3] | 0);
       conf.eth_dns = IPAddress(doc["eth"]["dns"][0] | 8, doc["eth"]["dns"][1] | 8, doc["eth"]["dns"][2] | 8, doc["eth"]["dns"][3] | 8);
-      conf.server_ip = IPAddress(doc["server"]["ip"][0] | 192, doc["server"]["ip"][1] | 168, doc["server"]["ip"][2] | 2, doc["server"]["ip"][3] | 255);
+      conf.server_ip = IPAddress(doc["server"]["ip"][0] | 192, doc["server"]["ip"][1] | 168, doc["server"]["ip"][2] | 1, doc["server"]["ip"][3] | 255);
       conf.server_pcb_port = doc["server"]["pcbPort"] | 5120;
       conf.server_ntrip_port = doc["server"]["ntripPort"] | 2233;
       conf.server_autosteer_port = doc["server"]["autosteerPort"] | 8888;
       conf.server_destination_port = doc["server"]["destinationPort"] | 9999;
       conf.driver_type = doc["driver"]["type"] | 1;
-      conf.driver_pin[0] = doc["driver"]["pin"][0] | 15;
+      conf.driver_pin[0] = doc["driver"]["pin"][0] | 0;
       conf.driver_pin[1] = doc["driver"]["pin"][1] | 4;
-      conf.driver_pin[2] = doc["driver"]["pin"][2] | 0;
+      conf.driver_pin[2] = doc["driver"]["pin"][2] | 12;
       conf.gnss_port = doc["gnss"]["port"] | 2;
       conf.gnss_baudRate = doc["gnss"]["baudRate"].as<uint32_t>() | 460800;
       conf.imu_type = doc["imu"]["type"] | 1;
-      conf.imu_port = doc["imu"]["port"] | 3;
-      conf.imu_tickRate = doc["imu"]["tickRate"] | 10; // run every 10ms (100Hz)
+      conf.imu_port = doc["imu"]["port"] | 1;
+      conf.imu_tickRate = doc["imu"]["tickRate"] | 11000; // run every 10ms (100Hz)
       conf.was_type = doc["was"]["type"] | 1;
       conf.was_resolution = doc["was"]["resolution"] | 12;
       conf.was_pin = doc["was"]["pin"] | 35;
@@ -134,7 +136,7 @@ public:
       conf.ls_filter = doc["ls"]["filter"] | 2;
       conf.remote_pin = doc["remotePin"] | 39;
       conf.steer_pin = doc["steerPin"] | 36;
-      conf.work_pin = doc["workPin"] | 12;
+      conf.work_pin = doc["workPin"] | 1;
       conf.reportTickRate = doc["reportTickRate"] | 10000; // run every 100ms (10Hz)
       conf.globalTickRate = doc["globalTickRate"] | 10000; // run every 100ms (10Hz)
     });
@@ -166,6 +168,21 @@ public:
       steerC.IsDanfoss = doc["IsDanfoss"] | 0;
       steerC.IsUseY_Axis = doc["IsUseY_Axis"] | 0; //Set to 0 to use X Axis, 1 to use Y avis
     });
+  }
+
+  bool resetConfigurationFiles(){
+		File file = fs->open(configurationFile, FILE_WRITE);
+    file.print("{\"reset\":1}");
+    file.close();
+    
+		file = fs->open("/steerSettings.json", FILE_WRITE);
+    file.print("{\"reset\":1}");
+    file.close();
+
+		file = fs->open("/steerConfiguration.json", FILE_WRITE);
+    file.print("{\"reset\":1}");
+    file.close();
+    return true;
   }
 
   void saveConfiguration(){

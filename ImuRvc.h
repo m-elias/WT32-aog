@@ -43,7 +43,7 @@ public:
     rotation = Vector3(0,0,0);
     acceleration = Vector3(0,0,0);
 
-		getOffset();
+		//getOffset();
 		isOn = true;
 		serial->begin(115200, SERIAL_8N1, 2);//fix baudrate as per datasheet, RX on pin 2 of wt32, no need for TX
     delay(100);

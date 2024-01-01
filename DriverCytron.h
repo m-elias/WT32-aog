@@ -29,6 +29,7 @@ public:
 		pin_dir = dir;
 
 		value = 0;
+    Serial.printf("Driver cytron initialised on pwm: %d, nc: %d, dir: %d\n", pwm, nc, dir);
     }
 	
 	void drive(float pwm){

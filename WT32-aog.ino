@@ -56,13 +56,15 @@
 /////////////////////////////////////////////
 
 // Global Variables ##########################################################################
-JsonDB db("/ers/configuration.json"); // Create a database for data interaction
-AsyncUDP udp;                         // A UDP instance to let us send and receive packets over UDP
+JsonDB db("/configuration.json"); // Create a database for data interaction
+AsyncUDP udpAutosteer;                // A UDP instance to let us send and receive packets over UDP for Autosteer
+AsyncUDP udpNtrip;                    // A UDP instance to receive packets over UDP for Ntrip
 Autosteering aog;                     // Create empty main processing object for autosteering
 //############################################################################################
 
 void setup(){
   Serial.begin(115200);// Serial for debugging TX0/RX0 on WT32
+  delay(3000);
   while (!Serial);
   Serial.print("\nStarting AOG pcb board on " + String(ARDUINO_BOARD));
   Serial.println(" with " + String(SHIELD_TYPE));
@@ -75,7 +77,7 @@ void setup(){
   }
 
   // Configure Resources from "configuration.json" file
-  db.begin(LittleFS);
+  db.begin(LittleFS);//(LittleFS, true) for reset configuration files
   // init webserver setup mode, only when the three buttons are pressed siimultaneously at the ESP begining
   if((digitalRead(db.conf.remote_pin)==LOW) && (digitalRead(db.conf.work_pin)==LOW) && (digitalRead(db.conf.steer_pin)==LOW)){
     db.saveConfiguration();
@@ -84,7 +86,7 @@ void setup(){
     setServerMode();
   }
   // Set up main objects
-  aog.begin(&db, &udp);
+  aog.begin(&db, &udpAutosteer, true, true);
 
   // Init Network
   WT32_ETH01_onEvent();
@@ -95,16 +97,17 @@ void setup(){
   Serial.println(ETH.localIP());
 
   // Register UDP callback functions to server & ports
-  if (udp.connect(db.conf.server_ip, db.conf.server_autosteer_port)){
-    Serial.println("UDP connected to autosteer port");
-    udp.onPacket([](AsyncUDPPacket packet){ aog.parseUdp(packet);});
-  }
-  if (udp.connect(db.conf.server_ip, db.conf.server_ntrip_port)){
-    Serial.println("UDP connected to ntrip port");
-    udp.onPacket([](AsyncUDPPacket packet){ aog.udpNtrip(packet);});
+  if (udpAutosteer.listen(db.conf.server_autosteer_port)){
+    Serial.printf("UDP connected to autosteer port (%d)\n", db.conf.server_autosteer_port);
+    udpAutosteer.onPacket([](AsyncUDPPacket packet){ aog.parseUdp(packet);});
   }
 
-  Serial.println(F("\nSetup complete, waiting for AgOpenGPS"));
+  if (udpNtrip.listen(db.conf.server_ntrip_port)){
+    Serial.printf("UDP connected to ntrip port (%d)\n",db.conf.server_ntrip_port);
+    udpNtrip.onPacket([](AsyncUDPPacket packet){ aog.udpNtrip(packet);});
+  }
+
+  Serial.println(F("\nSetup complete, waiting for AgOpenGPS ######################################################################\n"));
 }
 
 void loop(){

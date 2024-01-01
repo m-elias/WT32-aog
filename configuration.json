@@ -3,13 +3,13 @@
   "steerSettingsFile":"/steerSettings.json",
   "steerConfigurationFile":"/steerConfiguration.json",
   "eth":{
-    "ip":[192,168,2,123],
-    "gateway":[192,168,2,1],
+    "ip":[192,168,1,123],
+    "gateway":[192,168,1,1],
     "subnet":[255,255,255,0],
     "dns":[8,8,8,8]
   },
   "server":{
-	"ip":[192,168,2,255],
+	"ip":[192,168,1,255],
 	"pcbPort":5120,
 	"ntripPort":2233,
 	"autosteerPort":8888,
