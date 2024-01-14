@@ -65,9 +65,9 @@ public:
 		previousTime = now;
     
 		//actual code to run periodically
-    if(db->conf.was_type != 1) was->update(); //update if was is not internal reader
-		imu->parse();
-		gnss.parse();
+    if(db->conf.was_type != 1) was->update(); //update if was is not internal reader    
+	 	imu->parse();
+	 	gnss.parse();
 
     // Build the new PANDA sentence ################################################################
     char nmea[120];
@@ -80,7 +80,7 @@ public:
     int16_t sum = 0;
     uint8_t strSize = strlen(nmea);
     for (uint8_t inx = 1; inx < strSize; inx++) sum ^= nmea[inx];  // Build checksum
-    sprintf(nmea, "%s*%04X\r\n\0",nmea, sum);//add the checksum in hex
+    sprintf(nmea, "%s*%02X\r\n\0",nmea, sum);//add the checksum in hex
 
     if(debugSensors){
       Serial.printf("Was value: %.4f, was angle: %.4f\n", was->value, was->angle);
@@ -89,10 +89,9 @@ public:
 	  }
 
 		//send position to udp server #################################################################
-    AsyncUDPMessage udpM = AsyncUDPMessage(strSize+7);
-    udpM.write((uint8_t*)nmea, strSize+7);
-    udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
-		return true;
+    udp->writeTo((uint8_t*)nmea, strSize+7, db->conf.server_ip, db->conf.server_destination_port);
+
+    return true;
 	}
 
 private:

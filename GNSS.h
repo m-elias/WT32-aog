@@ -18,20 +18,12 @@
 
 #include "GeoMath.h"
 
-class NmeaMessage{
+class GGA{
 public:
-  NmeaMessage(){}
-  bool valid = false;
-};
-
-class GGA: public NmeaMessage{
-public:
+    GGA(){}
     GGA(const char *str, bool debug=false){
-      strcpy(raw, str);
-      if(debug) Serial.printf("Raw message: %s\n", raw);
-      parse(debug);
+      parse(str, debug);
     }
-    char raw[90];
     double time = 0;
     double lon = 0;
     double lat = 0;
@@ -43,8 +35,9 @@ public:
     double dgps_age = 0;
     uint16_t dgps_stn;
     uint8_t faa = '\0';
+    bool valid = false;
 
-  void parse(bool debug=false){
+  void parse(const char *raw, bool debug=false){
     uint8_t i=0;
     uint8_t j=0;
     uint8_t lastIndex=0;
@@ -81,21 +74,20 @@ public:
   }
 };
 
-class VTG: public NmeaMessage{
+class VTG{
 public:
+    VTG(){}
     VTG(const char *str, bool debug=false){
-      strcpy(raw, str);
-      if(debug) Serial.printf("Raw message: %s\n", raw);
-      parse(debug);
+      parse(str,debug);
     }
-    char raw[90];
     double trackTrue = 0;
     double trackMagnet = 0;
     double speedKnot = 0;
     double speedKmHr = 0;
     uint8_t faa = '\0';
+    bool valid = false;
 
-  void parse(bool debug=false){
+  void parse(const char *raw, bool debug=false){
     int i=0;
     int j=0;
     uint8_t lastIndex=0;
@@ -129,23 +121,28 @@ public:
 class NMEA{
 public:
   NMEA(const char* str, uint8_t _length, bool debug=false){
-    if(debug) Serial.printf("NMEA str: %s\n",str);
+    strcpy(raw, str);
+    if(debug) Serial.printf("Raw message: %s\n", raw);
     length = _length-3;
     if(_checksum(str)){
+      valid = true;
       int offset = 3;
       for(int i=0; i<3; i++) type[i]= str[i+offset];
       type[3]='\0';
       if(debug) Serial.printf("NMEA Type: %s\n", type);
       
-      if( strcmp(type,"GGA") == 0 )  m = new GGA(str, debug);
-      else if(strcmp(type,"VTG")==0) m = new VTG(str, debug);
-      else m = NULL;
-    }else m = NULL;
+      if( strcmp(type,"GGA") == 0 )  gga = GGA(str, debug);
+      else if(strcmp(type,"VTG")==0) vtg = VTG(str, debug);
+      else valid = false;
+    }else valid = false;
     if(debug) Serial.print("NMEA parsing done.\n");
   }
 
-  NmeaMessage* m;
+  VTG vtg;
+  GGA gga;
+  bool valid = false;
   char type[4];
+  char raw[90];
   uint8_t length;
   
 private:
@@ -172,7 +169,7 @@ public:
       rxP=5;
       txP=17;
     }
-//		else if(_port == 3) serial = &Serial3;
+    //else if(_port == 3) serial = &Serial3;
 		baudRate = _baudRate;
     serial->begin(baudRate, SERIAL_8N1, rxP, txP);//begin(baudRate); //pin definition required for esp32
     //serial->addMemoryForRead(rxBuffer, bufferSize);
@@ -197,26 +194,22 @@ public:
 
         rxBuffer[bufferCounter]='\0';//ends the string in the correct position
         NMEA nmea(rxBuffer, bufferCounter);
-        if(!nmea.m) return false;//checks if the message exist
-        if(!nmea.m->valid) return false;//checks if the message is valid
+        if(!nmea.valid) return false;//checks if the message exist
         //updates the gnss variables from the message data
-        if(strcmp(nmea.type,"VTG")==0){
-          VTG* m = (VTG*)nmea.m;
-          speed = m->speedKmHr/3.6;
-          speedKnot = m->speedKnot;
+        if(nmea.vtg.valid){
+          speed = nmea.vtg.speedKmHr/3.6;
+          speedKnot = nmea.vtg.speedKnot;
           //Serial.printf("VTG speed: %.2f\n", speed);
-        }else{
-          GGA* m = (GGA*)nmea.m;
-          if(abs(m->lon) == 0.0) return false;
+        }else if(nmea.gga.valid){
           //Serial.printf("GGA time: %.2f\n", m->time);
-          longitude = m->lon;
-          latitude = m->lat;
-          altitude = m->alt;
-          time = m->time;
-          fixQuality = m->fixQ;
-          sat_count = m->sat_count;
-          hdop = m->hdop;
-          dgps_age = m->dgps_age;
+          longitude = nmea.gga.lon;
+          latitude = nmea.gga.lat;
+          altitude = nmea.gga.alt;
+          time = nmea.gga.time;
+          fixQuality = nmea.gga.fixQ;
+          sat_count = nmea.gga.sat_count;
+          hdop = nmea.gga.hdop;
+          dgps_age = nmea.gga.dgps_age;
 
           Vector2 pos2D(0,0);
           pos2D.copy(getPositionMeters());

@@ -55,24 +55,20 @@ public:
   }
 
   void parseUdp(AsyncUDPPacket packet){
-    Serial.print("Udp packet captured.\n");
     if (packet.length() < 5) return;
     
-    uint8_t data[packet.length()+1];
-    memcpy(data, packet.data(), packet.length());
-
-    if (data[0] == 0x80 && data[1] == 0x81 && data[2] == 0x7F){ //Data
-      if(debugUdp) Serial.printf("Udp packet captured frame: %u\n", data[3]);
-      switch (data[3]) {
+    if (packet.data()[0] == 0x80 && packet.data()[1] == 0x81 && packet.data()[2] == 0x7F){ //Data
+      if(debugUdp) Serial.printf("Udp packet captured frame: %u, length: %zu\n", packet.data()[3], packet.length());
+      switch (packet.data()[3]) {
         case 254: // 0xFE Autosteering
           {
-            position.gnss.speed = ((float)(data[5] | data[6] << 8)) * 0.1;
+            position.gnss.speed = ((float)(packet.data()[5] | packet.data()[6] << 8)) * 0.1;
 
-            guidanceStatusChanged = (guidanceStatus != data[7]);
-            if(guidanceStatusChanged) guidanceStatus = data[7];
+            guidanceStatusChanged = (guidanceStatus != packet.data()[7]);
+            if(guidanceStatusChanged) guidanceStatus = packet.data()[7];
 
             //Bit 8,9    set point steer angle * 100 is sent
-            steerAngleSetPoint = ((float)(data[8] | ((int8_t)data[9]) << 8)) * 0.01;  //high low bytes
+            steerAngleSetPoint = ((float)(packet.data()[8] | ((int8_t)packet.data()[9]) << 8)) * 0.01;  //high low bytes
 
             if ((bitRead(guidanceStatus, 0) == 0) || (position.gnss.speed < 0.1) || (steerSwitch == 1)) {
               watchdogTimer = WATCHDOG_FORCE_VALUE;  //turn off steering motor
@@ -80,9 +76,9 @@ public:
               watchdogTimer = 0;  //reset watchdog
             }
 
-            //tram = data[10];
-            //relay = data[11];
-            //relayHi = data[12];
+            //tram = packet.data()[10];
+            //relay = packet.data()[11];
+            //relayHi = packet.data()[12];
 
             // Serial Send to agopenGPS ##########################################################################
             uint8_t PGN_253[] = {0x80,0x81, 126, 0xFD, 8, 0, 0, 0, 0, 0,0,0,0, 0xCC };
@@ -111,11 +107,9 @@ public:
             for (uint8_t i = 2; i < PGN_253_Size; i++) CK_A = (CK_A + PGN_253[i]);
             PGN_253[PGN_253_Size] = CK_A;
 
-            //udp->writeTo(PGN_253, sizeof(PGN_253), db->conf.server_ip, db->conf.server_destination_port);
-            AsyncUDPMessage udpM = AsyncUDPMessage(PGN_253_Size+1);
-            udpM.write(PGN_253, PGN_253_Size+1);
-            udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
-
+            
+            udp->writeTo(PGN_253, sizeof(PGN_253), db->conf.server_ip, db->conf.server_destination_port);
+           
             //Steer Data 2  ###############################################################################
             if (db->steerC.PressureSensor || db->steerC.CurrentSensor) {
               if (loadSensor->counter++ > 2) {
@@ -147,10 +141,7 @@ public:
                 for (uint8_t i = 2; i < PGN_250_Size; i++) CK_A = (CK_A + PGN_250[i]);
                 PGN_250[PGN_250_Size] = CK_A;
 
-                //udp->writeTo(PGN_250, sizeof(PGN_250), db->conf.server_ip, db->conf.server_destination_port);
-                AsyncUDPMessage udpM = AsyncUDPMessage(PGN_250_Size+1);
-                udpM.write(PGN_250, PGN_250_Size+1);
-                udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
+                udp->writeTo(PGN_250, sizeof(PGN_250), db->conf.server_ip, db->conf.server_destination_port);
 
                 loadSensor->counter = 0;
               }
@@ -160,23 +151,23 @@ public:
         case 252: // 0xFC - steer settings
           {
             //PID values
-            db->steerS.Kp = ((float)data[5]);    // read Kp from AgOpenGPS
-            db->steerS.highPWM = data[6];        // read high pwm
-            db->steerS.lowPWM = (float)data[7];  // read lowPWM from AgOpenGPS
-            db->steerS.minPWM = data[8];         //read the minimum amount of PWM for instant on
+            db->steerS.Kp = ((float)packet.data()[5]);    // read Kp from AgOpenGPS
+            db->steerS.highPWM = packet.data()[6];        // read high pwm
+            db->steerS.lowPWM = (float)packet.data()[7];  // read lowPWM from AgOpenGPS
+            db->steerS.minPWM = packet.data()[8];         //read the minimum amount of PWM for instant on
             float temp = (float)db->steerS.minPWM * 1.2;
             db->steerS.lowPWM = (byte)temp;
-            db->steerS.steerSensorCounts = data[9];   //sent as setting displayed in AOG
-            db->steerS.wasOffset = (data[10]);        //read was zero offset Lo
-            db->steerS.wasOffset |= (data[11] << 8);  //read was zero offset Hi
-            db->steerS.AckermanFix = (float)data[12] * 0.01;
+            db->steerS.steerSensorCounts = packet.data()[9];   //sent as setting displayed in AOG
+            db->steerS.wasOffset = (packet.data()[10]);        //read was zero offset Lo
+            db->steerS.wasOffset |= (packet.data()[11] << 8);  //read was zero offset Hi
+            db->steerS.AckermanFix = (float)packet.data()[12] * 0.01;
 
             db->saveSteerSettings();
             break;
           }
         case 251: // 0xFB - SteerConfig
           {
-            uint8_t sett = data[5];  //setting0
+            uint8_t sett = packet.data()[5];  //setting0
             if (bitRead(sett, 0)) db->steerC.InvertWAS = 1;
             else db->steerC.InvertWAS = 0;
             if (bitRead(sett, 1)) db->steerC.IsRelayActiveHigh = 1;
@@ -194,12 +185,12 @@ public:
             if (bitRead(sett, 7)) db->steerC.ShaftEncoder = 1;
             else db->steerC.ShaftEncoder = 0;
 
-            db->steerC.PulseCountMax = data[6];
+            db->steerC.PulseCountMax = packet.data()[6];
 
             //was speed
-            //data[7];
+            //packet.data()[7];
 
-            sett = data[8];  //setting1 - Danfoss valve etc
+            sett = packet.data()[8];  //setting1 - Danfoss valve etc
             if (bitRead(sett, 0)) db->steerC.IsDanfoss = 1;
             else db->steerC.IsDanfoss = 0;
             if (bitRead(sett, 1)) db->steerC.PressureSensor = 1;
@@ -210,7 +201,7 @@ public:
             else db->steerC.IsUseY_Axis = 0;
 
             //crc
-            //data[13];
+            //packet.data()[13];
             
             db->saveSteerConfiguration();
             break;
@@ -233,19 +224,16 @@ public:
             switchByte |= digitalRead(db->conf.work_pin);          //put workswitch status in bit 0 position
             helloFromAutoSteer[9] = switchByte;
 
-            //udp->writeTo(helloFromAutoSteer, sizeof(helloFromAutoSteer), db->conf.server_ip, db->conf.server_destination_port);
-            AsyncUDPMessage udpM = AsyncUDPMessage(sizeof(helloFromAutoSteer));
-            udpM.write(helloFromAutoSteer, sizeof(helloFromAutoSteer));
-            udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
+            udp->writeTo(helloFromAutoSteer, sizeof(helloFromAutoSteer), db->conf.server_ip, db->conf.server_destination_port);
             break;
           }
         case 201: // change ip
           {
             //make really sure this is the subnet pgn
-            if (data[4] == 5 && data[5] == 201 && data[6] == 201){
-              db->conf.eth_ip[0] = data[7];
-              db->conf.eth_ip[1] = data[8];
-              db->conf.eth_ip[3] = data[9];
+            if (packet.data()[4] == 5 && packet.data()[5] == 201 && packet.data()[6] == 201){
+              db->conf.eth_ip[0] = packet.data()[7];
+              db->conf.eth_ip[1] = packet.data()[8];
+              db->conf.eth_ip[3] = packet.data()[9];
 
               db->conf.server_ip[0] = db->conf.eth_ip[0];
               db->conf.server_ip[1] = db->conf.eth_ip[1];
@@ -258,7 +246,7 @@ public:
           }
         case 202: // whoami
           {
-            if (data[4] == 3 && data[5] == 202 && data[6] == 202) { // make really sure this is the reply pgn
+            if (packet.data()[4] == 3 && packet.data()[5] == 202 && packet.data()[6] == 202) { // make really sure this is the reply pgn
               //hello from AgIO
               uint8_t scanReply[] = { 128, 129, 126, 203, 13, 
                                       db->conf.eth_ip[0], db->conf.eth_ip[1], db->conf.eth_ip[2], db->conf.eth_ip[3],
@@ -269,10 +257,7 @@ public:
               for (uint8_t i = 2; i < sizeof(scanReply) - 1; i++) CK_A = (CK_A + scanReply[i]);
               scanReply[sizeof(scanReply) - 1] = CK_A;
 
-              //udp->writeTo(scanReply, sizeof(scanReply), db->conf.server_ip, db->conf.server_destination_port);
-              AsyncUDPMessage udpM = AsyncUDPMessage(sizeof(scanReply));
-              udpM.write(scanReply, sizeof(scanReply));
-              udp->sendTo(udpM, db->conf.server_ip, db->conf.server_destination_port);
+              udp->writeTo(scanReply, sizeof(scanReply), db->conf.server_ip, db->conf.server_destination_port);
             }
             break;
           }
