@@ -45,15 +45,17 @@ public:
 
 		//getOffset();
 		isOn = true;
-		serial->begin(115200, SERIAL_8N1, 2);//fix baudrate as per datasheet, RX on pin 2 of wt32, no need for TX
+		serial->begin(115200, SERIAL_8N1, 2, 21);//fix baudrate as per datasheet, RX on pin 2 & TX on 21 of wt32, no need for TX
     delay(100);
     Serial.printf("Imu initialised on p: %d\n", _port);
 	}
 
 	bool parse(){
     if(!isBegining()) return false;
-		if(serial->readBytes(buffer, 17) != 17) return false;
-		if(!_checkSum()) return false;
+    
+    uint8_t buffer[19];
+		if(!serial->readBytes(buffer, 17)) return false;
+		if(!_checkSum(buffer)) return false;
 
 		if(!isOn) return false;
 		
@@ -85,7 +87,9 @@ public:
 		acceleration = Vector3(ax, az, -ay);//in 3js coordenates
 
 		isUsed = false;
-		return true;
+    if(serial->available() > 18) parse();
+
+    return true;
 	}
 
 	void setOn(bool value=true){
@@ -94,18 +98,16 @@ public:
 	
 private:
 	HardwareSerial* serial;
-	uint8_t buffer[19];
 	
-	bool _checkSum(){
+	bool _checkSum(uint8_t buffer[], uint8_t size=16){
 		uint8_t sum = 0;
-		for (uint8_t i = 0; i < 16; i++) sum += buffer[i];
-		if (sum != buffer[16]) return false;
+		for (uint8_t i = 0; i < size; i++) sum += buffer[i];
+		if (sum != buffer[size]) return false;
 		return true;
 	}
 
   bool isBegining(){
-    if(serial->available() < 19) return false;//discard not enough data to be right
-    while(serial->available() > 38){ serial->readBytes(buffer, 19); }//discard "old" reads to have the most recent
+    if (!serial->available()) return false;
     while(serial->read() != 0xAA){}// search for the first byte containing 0xAA
 		if(serial->read() != 0xAA) return false;// make sure the next byte is the second 0xAA
     if(serial->available() < 17) return false;//discard not enough data to be right

@@ -62,6 +62,8 @@ public:
     }
 
 		if(now - previousTime < reportPeriodMs) return false;
+    uint32_t timeLapse = now - previousTime;
+    double previousYaw = imu->rotation.y;
 		previousTime = now;
     
 		//actual code to run periodically
@@ -71,11 +73,13 @@ public:
 
     // Build the new PANDA sentence ################################################################
     char nmea[120];
-    sprintf(nmea, "$PANDA,%lu,%.5f,%s,%.5f,%s,%u,%u,%.2f,%.4f,%.2f,%.4f,%.4f,%.4f,%.4f,%.4f\0",
+    const double conv = 1800/3.14159265;//rad-to-deg*10
+    sprintf(nmea, "$PANDA,%lu,%.5f,%s,%.5f,%s,%u,%u,%.2f,%.4f,%.2f,%.4f,%.0f,%.0f,%.0f,%.0f\0",
                   gnss.time, abs(gnss.latitude), (gnss.latitude < 0)?"S":"N", 
                   abs(gnss.longitude), (gnss.longitude < 0)?"E":"W", gnss.fixQuality, 
                   gnss.sat_count, gnss.hdop, gnss.altitude, gnss.dgps_age, gnss.speedKnot, 
-                  imu->rotation.y, imu->rotation.x, imu->rotation.z, imu->acceleration.y);
+                  imu->rotation.y*conv, imu->rotation.z*conv, imu->rotation.x*conv, 
+                  (imu->rotation.y-previousYaw)/timeLapse*conv*1000);
     // Calculate checksum
     int16_t sum = 0;
     uint8_t strSize = strlen(nmea);

@@ -6,7 +6,7 @@
     WT32 Serial 2 RX (5) to F9P Position receiver TX1 (Position data)
     WT32 Serial 2 TX (17) to F9P Position receiver RX1 (RTCM data for RTK)
 
-    WT32 Serial1 RX (2) to IMU SCL pin for RVC mode (IMU data)
+    WT32 Serial1 RX (2) to IMU SCL pin for RVC mode (IMU data). Tx (21)?
 
     WT32 CAN-R (33) to CAN-R driver (CAN data)
     WT32 CAN-T (32) to CAN-T driver (CAN data)
