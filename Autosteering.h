@@ -16,28 +16,35 @@
 #ifndef AUTOSTEERING_H
 #define AUTOSTEERING_H
 
+#if MICRO_VERSION == 1
+ #include <AsyncUDP_WT32_ETH01.h>
+#endif
+#if MICRO_VERSION == 2
+ #include "lib/vendor/AsyncUDP_Teensy41/src/AsyncUDP_Teensy41.h"
+#endif
+
 #include "JsonDB.h"
-#include <AsyncUDP_WT32_ETH01.h>
 #include "ArduinoJson.h"
 #include "Position.h"
 #include "DriverCytron.h"
 #include "DriverIbt.h"
+#include "DriverKeya.h"
 #include "Driver.h"
 #include "Sensor.h"
 #include "SensorInternalReader.h"
 
 class Autosteering {
 public:
-  Autosteering() {}
+  Autosteering(){}
 
   void begin(JsonDB* _db, AsyncUDP* udpService, bool udpDebug=false, bool sensorsDebug=false){
     db = _db;
     udp = udpService;
     debugUdp = udpDebug;
-    position = Position(db, udpService, sensorsDebug);
+    position = Position(db, udp, sensorsDebug);
     delay(1000);//TODO MCB
-    //TODO MCB define pwm frequency for esp next line is for teensy
-    //analogWriteFrequency(db->conf.driver_pin[0], 490);
+   #if MICRO_VERSION == 2
+    analogWriteFrequency(db->conf.driver_pin[0], 490);//TODO MCB define pwm frequency for esp next line is for teensy
     /*
     //keep pulled high and drag low to activate, noise free safe
     pinMode(db->conf.work_pin, INPUT_PULLUP);
@@ -45,11 +52,11 @@ public:
     pinMode(db->conf.remote_pin, INPUT_PULLUP);
     Serial.printf("Setted work pin: %d, steer pin: %d, remote pin: %d\n",db->conf.work_pin, db->conf.steer_pin, db->conf.remote_pin);
     */
-
+   #endif
     // Create driver, interact with PWM #######################################################################################################
-    (db->conf.driver_type==1)? driver = new DriverCytron(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]) : driver = new DriverIbt(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]);
+    (db->conf.driver_type==1)? driver = new DriverCytron(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]) : (db->conf.driver_type==2)? driver = new DriverKeya(db->conf.driver_pin[0]) : driver = new DriverIbt(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]);
     // Create sensor for automatic stop autosteering (pressure/current)
-    if (db->steerC.PressureSensor || db->steerC.CurrentSensor) loadSensor = new SensorInternalReader(_db, db->conf.ls_pin, 12, db->conf.ls_filter);
+    if (db->steerC.PressureSensor || db->steerC.CurrentSensor) loadSensor = new SensorInternalReader(db, db->conf.ls_pin, 12, db->conf.ls_filter);
     // Loop configuration variables
     tickLengthMs = 1000000 / db->conf.globalTickRate;
   }
@@ -72,6 +79,7 @@ public:
 
             if ((bitRead(guidanceStatus, 0) == 0) || (position.gnss.speed < 0.1) || (steerSwitch == 1)) {
               watchdogTimer = WATCHDOG_FORCE_VALUE;  //turn off steering motor
+              if(driver->value!=0) driver->disengage();
             } else { //valid conditions to turn on autosteer
               watchdogTimer = 0;  //reset watchdog
             }
@@ -116,22 +124,24 @@ public:
                 uint8_t PGN_250[] = { 0x80,0x81, 126, 0xFA, 8, 0, 0, 0, 0, 0,0,0,0, 0xCC };
                 int8_t PGN_250_Size = sizeof(PGN_250) - 1;
 
-                int sensorReading = 0;
-                float sensorSample = loadSensor->value*13610;
-
-                if (db->steerC.PressureSensor){ // Pressure sensor?
-                  sensorSample *= 0.25;
-                  sensorReading = sensorReading * 0.6 + sensorSample * 0.4;
-                }else if (db->steerC.CurrentSensor){ // Current sensor?
-                  sensorSample = (abs(775 - sensorSample)) * 0.5;
-                  sensorReading = sensorReading * 0.7 + sensorSample * 0.3;    
-                  sensorReading = min(sensorReading, 255);
+                if(db->conf.driver_type==2){ //if driver is canbus motor checks the canbus looking for Motor current
+                  sensorReading = driver->getCurrent();
+                }else{ 
+                  float sensorSample = loadSensor->value*13610;
+                  if (db->steerC.PressureSensor){ // Pressure sensor?
+                    sensorSample *= 0.25;
+                    sensorReading = sensorReading * 0.6 + sensorSample * 0.4;
+                  }else if (db->steerC.CurrentSensor){ // Current sensor?
+                    sensorSample = (abs(775 - sensorSample)) * 0.5;
+                    sensorReading = sensorReading * 0.7 + sensorSample * 0.3;    
+                    sensorReading = min(sensorReading, (float)255);
+                  }
                 }
 
                 if (sensorReading >= db->steerC.PulseCountMax) {
                     steerSwitch = 1; // reset values like it turned off
-                    currentState = 1;
                     previous = 0;
+                    if(driver->value!=0) driver->disengage();
                 }
 
                 PGN_250[5] = (byte)sensorReading;
@@ -161,6 +171,8 @@ public:
             db->steerS.wasOffset = (packet.data()[10]);        //read was zero offset Lo
             db->steerS.wasOffset |= (packet.data()[11] << 8);  //read was zero offset Hi
             db->steerS.AckermanFix = (float)packet.data()[12] * 0.01;
+
+            position.imu->setOffset();
 
             db->saveSteerSettings();
             break;
@@ -240,7 +252,13 @@ public:
               db->conf.server_ip[2] = db->conf.eth_ip[2];
 
               db->saveConfiguration();
-              ESP.restart();
+              //do reboot
+              #if MICRO_VERSION == 1
+               ESP.restart();
+              #endif
+              #if MICRO_VERSION == 2
+               SCB_AIRCR = 0x05FA0004;
+              #endif
             }
             break;
           }
@@ -285,37 +303,32 @@ public:
 	*/
 	void update() {
     //If connection lost to AgOpenGPS, the watchdog will count up and turn off steering
-    if (watchdogTimer++ > 250) watchdogTimer = WATCHDOG_FORCE_VALUE;
+    if (watchdogTimer++ > 250){
+      watchdogTimer = WATCHDOG_FORCE_VALUE;
+      if(driver->value!=0) driver->disengage();
+    }
 
     if (db->steerC.SteerSwitch == 1){         //steer switch on - off
-      steerSwitch = digitalRead(db->conf.steer_pin); //read auto steer enable switch open = 0n closed = Off
+      steerSwitch = digitalRead(db->conf.steer_pin);//read auto steer enable switch open = 0n closed = Off
+      if(steerSwitch==LOW){
+        if(driver->value!=0) driver->disengage();
+        return;// no need to follow, driving disengaged
+      }
     }else if (db->steerC.SteerButton == 1){   //steer Button momentary
-      reading = digitalRead(db->conf.steer_pin); //read auto steer enable switch open = 0n closed = Off
-      if (reading == LOW && previous == HIGH){
-        if (currentState == 1){
-          currentState = 0;
+        uint8_t reading = digitalRead(db->conf.steer_pin);
+        if (!reading && previous) steerSwitch = steerSwitch? 0 : 1;//toggle steerSwitch
+        previous = reading;
+      }else{ //No steer switch and no steer button. Listen GUI/AIO
+        if (guidanceStatusChanged && guidanceStatus && steerSwitch && !previous){
           steerSwitch = 0;
-        }else{
-          currentState = 1;
+          previous = 1;
+        }
+        // This will set steerswitch off and make the above check wait until the guidanceStatus has gone to 0
+        if (guidanceStatusChanged && !guidanceStatus && !steerSwitch && previous){
           steerSwitch = 1;
+          previous = 0;
         }
       }
-      previous = reading;
-    }else{                                      // No steer switch and no steer button
-      // So set the correct value. When guidanceStatus = 1,
-      // it should be on because the button is pressed in the GUI
-      // But the guidancestatus should have set it off first
-      if (guidanceStatusChanged && guidanceStatus == 1 && steerSwitch == 1 && previous == 0){
-        steerSwitch = 0;
-        previous = 1;
-      }
-
-      // This will set steerswitch off and make the above check wait until the guidanceStatus has gone to 0
-      if (guidanceStatusChanged && guidanceStatus == 0 && steerSwitch == 0 && previous == 1){
-        steerSwitch = 1;
-        previous = 0;
-      }
-    }
 
     // Do pid and command angle change
     _changeWheelAngle(); //TODO: review angle unit (steerAngleSetPoint) rad or deg?.
@@ -333,7 +346,6 @@ public:
 		
     //actual code to run periodically
 		if(guidanceStatus == 1) update();
-
     return true;
 	}
 
@@ -349,12 +361,14 @@ private:
   bool guidanceStatusChanged = false, debugUdp=false;
   // Angle goal
   float steerAngleSetPoint = 0; //the desired angle from AgOpen
+  // Load Sensor measurement, to disengage steering
+  float sensorReading = 0;
   // Networt disconnection check
   const uint16_t WATCHDOG_THRESHOLD = 100;
   const uint16_t WATCHDOG_FORCE_VALUE = 102; // Should be greater than WATCHDOG_THRESHOLD
   uint8_t watchdogTimer = 102;
   //Steer switch button
-  uint8_t steerSwitch = 1, currentState = 1, reading = 0 , previous = 0;
+  uint8_t steerSwitch = 1, reading = 0 , previous = 0;
 
 	/*
 	commands the actuator (motor, valves...) to move to a certain degree
@@ -390,6 +404,5 @@ private:
     if (watchdogTimer < WATCHDOG_THRESHOLD)	// check if network connection is active
       driver->drive(pwm/maxPwm); // driver needs an input in the range [-1,1]
 	}
-
 };
 #endif

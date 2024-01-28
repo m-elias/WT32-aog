@@ -41,7 +41,7 @@ public:
 		roll_offset = rotation.x+(roll_offset?roll_offset:0);
 		
 		//store
-    db->get("/ers/static/api/autosteering", [&](JsonDocument& doc){
+    db->get("/imuOffset.json", [&](JsonDocument& doc){
 			doc["pitch_offset"] = pitch_offset;
 			doc["yaw_offset"] = yaw_offset;
 			doc["roll_offset"] = roll_offset;
@@ -49,10 +49,11 @@ public:
 	}
 	
 	void getOffset(){
-		db->get("/ers/static/api/autosteering", [&](JsonDocument& doc){
-			pitch_offset = doc["pitch_offset"].as<float>();
-			yaw_offset = doc["yaw_offset"].as<float>();
-			roll_offset = doc["roll_offset"].as<float>();
+		db->get("/imuOffset.json", [&](JsonDocument& doc){
+      JsonObject root = doc.to<JsonObject>();
+			pitch_offset = root.containsKey("pitch_offset")? doc["pitch_offset"].as<float>() : 0;
+			yaw_offset = root.containsKey("yaw_offset")? doc["yaw_offset"].as<float>() : 0;
+			roll_offset = root.containsKey("roll_offset")? doc["roll_offset"].as<float>() : 0;
 		});
 	}
 	

@@ -118,6 +118,131 @@ public:
   }
 };
 
+class RMC{
+public:
+    RMC(){}
+    RMC(const char *str, bool debug=false){
+      parse(str, debug);
+    }
+    double time = 0;
+    char status = 'A';
+    double lon = 0;
+    double lat = 0;
+    double speed = 0;
+    double trackAngle = 0;
+    uint16_t date = 0;
+    double magneticVariation = 0;
+    uint8_t faa = '\0';
+    bool valid = false;
+
+  void parse(const char *raw, bool debug=false){
+    uint8_t i=0;
+    uint8_t j=0;
+    uint8_t lastIndex=0;
+    char str[10][20];
+    str[0][0] = '0';
+
+    while(raw[i++]!='*'){
+      if(raw[i] != ','){ 
+        if(j>0) str[j-1][i-lastIndex] = raw[i];
+      }else{
+        if(j>0){
+          str[j-1][i-lastIndex] = '\0';
+          if(debug) Serial.printf("Field: %d value: %s\n", j, str[j-1]);
+          if(j==1) time = strtod(str[j-1], NULL);
+          if(j==2) status = str[j-1][0];
+          if(j==3) lat = strtod(str[j-1], NULL);
+          if(j==4) lat *= (str[j-1][0]=='N')? 1 : -1;
+          if(j==5) lon = strtod(str[j-1], NULL);
+          if(j==6) lon *= (str[j-1][0]=='E')? -1 : 1;
+          if(j==7) speed = strtod(str[j-1], NULL)*0.5144444444;//in m/s
+          if(j==8) trackAngle = strtod(str[j-1], NULL);
+          if(j==9) date = atoi(str[j-1]);
+          if(j==9) magneticVariation = strtod(str[j-1], NULL);
+          if(j==10) magneticVariation *= (str[j-1][0]=='E')? -1 : 1;
+        }
+
+        lastIndex = i+1;
+        j++;
+      }
+    }
+    if(j==11) faa = (str[j-1][0]!='\0')? str[j-1][0] : '\0';
+    if(j>9) valid = true;
+  }
+};
+
+class KSXT{
+public:
+    KSXT(){}
+    KSXT(const char *str, bool debug=false){
+      parse(str, debug);
+    }
+    double time = 0;
+    double lon = 0;
+    double lat = 0;
+    double height = 0;
+    double heading = 0;
+    double pitch = 0;
+    double track = 0;
+    double speed = 0;
+    double roll = 0;
+    uint8_t posQ = 0;
+    uint8_t heaQ = 0;
+    uint8_t satSlave = 0;
+    uint8_t satMaster = 0;
+    double east = 0;
+    double north = 0;
+    double up = 0;
+    double eastSpeed = 0;
+    double northSpeed = 0;
+    double upSpeed = 0;
+    uint8_t faa = '\0';
+    bool valid = false;
+
+  void parse(const char *raw, bool debug=false){
+    uint8_t i=0;
+    uint8_t j=0;
+    uint8_t lastIndex=0;
+    char str[22][20];
+    str[0][0] = '0';
+
+    while(raw[i++]!='*'){
+      if(raw[i] != ','){ 
+        if(j>0) str[j-1][i-lastIndex] = raw[i];
+      }else{
+        if(j>0){
+          str[j-1][i-lastIndex] = '\0';
+          if(debug) Serial.printf("Field: %d value: %s\n", j, str[j-1]);
+          if(j==1) time = strtod(str[j-1], NULL);
+          if(j==2) lon = strtod(str[j-1], NULL);
+          if(j==3) lat = strtod(str[j-1], NULL);
+          if(j==4) height = strtod(str[j-1], NULL);
+          if(j==5) heading = strtod(str[j-1], NULL);
+          if(j==6) pitch = strtod(str[j-1], NULL);
+          if(j==7) track = strtod(str[j-1], NULL);
+          if(j==8) speed = strtod(str[j-1], NULL);
+          if(j==9) roll = strtod(str[j-1], NULL);
+          if(j==11) posQ = atoi(str[j-1]);
+          if(j==13) heaQ = atoi(str[j-1]);
+          if(j==14) satSlave = atoi(str[j-1]);
+          if(j==15) satMaster = atoi(str[j-1]);
+          if(j==16) east = strtod(str[j-1], NULL);
+          if(j==17) north = strtod(str[j-1], NULL);
+          if(j==18) up = strtod(str[j-1], NULL);
+          if(j==19) eastSpeed = strtod(str[j-1], NULL);
+          if(j==20) northSpeed = strtod(str[j-1], NULL);
+          if(j==21) upSpeed = strtod(str[j-1], NULL);
+        }
+
+        lastIndex = i+1;
+        j++;
+      }
+    }
+    if(j==22) faa = (str[j-1][0]!='\0')? str[j-1][0] : '\0';
+    if(j>20) valid = true;
+  }
+};
+
 class NMEA{
 public:
   NMEA(const char* str, uint8_t _length, bool debug=false){
@@ -158,9 +283,11 @@ private:
 class GNSS{
 public:
   GNSS():position(0,0,0){}
-	GNSS(uint8_t _port=2, uint32_t _baudRate=115200):position(0,0,0){
+	GNSS(uint8_t _port, uint32_t _baudRate=115200):position(0,0,0){
+   #if MICRO_VERSION == 1
     uint8_t rxP=5;
     uint8_t txP=17;
+    if(_port > 3) _port = 2;
 
 		if(_port == 1) serial = &Serial1;
 		else if(_port == 2) {
@@ -172,6 +299,25 @@ public:
     //else if(_port == 3) serial = &Serial3;
 		baudRate = _baudRate;
     serial->begin(baudRate, SERIAL_8N1, rxP, txP);//begin(baudRate); //pin definition required for esp32
+   #endif
+   #if MICRO_VERSION == 2
+    if(_port > 8){//means it is not a Serial but a pin # for defining Teensy RX
+      serial = &Serial5;//Rx on pin 21
+      //serial->setRX(_port);//IMU SDA (18 in AIO-2.5/4)  SCL not needed. Not possible on 18, not a xbar pin.!!!
+    }
+		else if(_port == 1) serial = &Serial1;//Rx on pin 0
+		else if(_port == 2) serial = &Serial2;//Rx on pin 7
+		else if(_port == 3) serial = &Serial3;//Rx on pin 15
+		else if(_port == 4) serial = &Serial4;//Rx on pin 16
+		else if(_port == 5) serial = &Serial5;//Rx on pin 21
+		else if(_port == 6) serial = &Serial6;//Rx on pin 25
+		else if(_port == 7) serial = &Serial7;//Rx on pin 28
+		else if(_port == 8) serial = &Serial8;//Rx on pin 34
+
+		baudRate = _baudRate;
+    serial->begin(baudRate);
+   #endif
+
     //serial->addMemoryForRead(rxBuffer, bufferSize);
     //serial->addMemoryForWrite(txBuffer, bufferSize);
     delay(100);//TODO MCB

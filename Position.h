@@ -16,7 +16,13 @@
 #ifndef POSITION_H
 #define POSITION_H
 
-#include <AsyncUDP_WT32_ETH01.h>
+#if MICRO_VERSION == 1
+ #include <AsyncUDP_WT32_ETH01.h>
+#endif
+#if MICRO_VERSION == 2
+ #include "lib/vendor/AsyncUDP_Teensy41/src/AsyncUDP_Teensy41.h"
+#endif
+
 #include "JsonDB.h"
 #include "GNSS.h"
 #include "IMU.h"
@@ -28,7 +34,7 @@
 
 class Position{
 public:
-  Position():gnss(2,115200){}
+  Position(){}
 	Position(JsonDB* _db, AsyncUDP* udpService, bool sensorsDebug=false):gnss(_db->conf.gnss_port, _db->conf.gnss_baudRate){
 		udp = udpService;
     db = _db;

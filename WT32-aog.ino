@@ -42,51 +42,61 @@
     CFG-UART2-BAUDRATE 460800
     Serial 2 In RTCM
 */
+#define MICRO_VERSION     2 //1: WT32_ETH01; 2: Teensy41
+#define FIRMWARE_VERSION  "v0.0.1"
 
-#define ASYNC_UDP_WT32_ETH01_DEBUG_PORT      Serial
-// Use from 0 to 4. Higher number, more debugging messages and memory usage.
-#define _ASYNC_UDP_WT32_ETH01_LOGLEVEL_      1
-
-#include <AsyncUDP_WT32_ETH01.h>
-
-#include "JsonDB.h"
+// Libraries setup
 #include <LittleFS.h>
+
+#if MICRO_VERSION == 1
+  #define ASYNC_UDP_WT32_ETH01_DEBUG_PORT      Serial
+  #define _ASYNC_UDP_WT32_ETH01_LOGLEVEL_      1 // Use from 0 to 4. Higher number, more debugging messages and memory usage.
+
+  // External Libraries in use
+  #include <AsyncUDP_WT32_ETH01.h>
+#endif
+#if MICRO_VERSION == 2
+ #define SHIELD_TYPE     "Teensy4.1 QNEthernet"
+ #define USE_NATIVE_ETHERNET         false
+ #define USE_QN_ETHERNET             true
+ #define USING_DHCP            false
+ #define SD_CONFIG SdioConfig(FIFO_SDIO) // Use Teensy SDIO
+
+ // External Libraries in use
+ #include "lib/vendor/QNEthernet/src/QNEthernet.h"       // https://github.com/ssilverman/QNEthernet
+ using namespace qindesign::network;
+
+ LittleFS_Program lfs;
+#endif
+
+// Internal Libraries in use
+#include "JsonDB.h"
 #include "Autosteering.h"
-#include "WebserverHelper.h"
 /////////////////////////////////////////////
 
 // Global Variables ##########################################################################
-JsonDB db("/configuration.json"); // Create a database for data interaction
+JsonDB db("/configuration.json");     // Create a database for data interaction
 AsyncUDP udpAutosteer;                // A UDP instance to let us send and receive packets over UDP for Autosteer
 AsyncUDP udpNtrip;                    // A UDP instance to receive packets over UDP for Ntrip
 Autosteering aog;                     // Create empty main processing object for autosteering
 //############################################################################################
 
+#include "WebserverHelper.h"
+
 void setup(){
   Serial.begin(115200);// Serial for debugging TX0/RX0 on WT32
   delay(3000);
   while (!Serial);
-  Serial.print("\nStarting AOG pcb board on " + String(ARDUINO_BOARD));
-  Serial.println(" with " + String(SHIELD_TYPE));
-  Serial.println(ASYNC_UDP_WT32_ETH01_VERSION);
+  Serial.printf("\nStarting AIO Firmware on %s with release:%s\n",MICRO_VERSION==1?"WT32-ETH01":"Teensy 4.1", FIRMWARE_VERSION);
 
+ #if MICRO_VERSION == 1
   // Mount file system. Initialize.
   if(!LittleFS.begin(true)){
     Serial.println("LittleFS Mount Failed");
     return;
   }
-
   // Configure Resources from "configuration.json" file
   db.begin(LittleFS);//(LittleFS, true) for reset configuration files
-  // init webserver setup mode, only when the three buttons are pressed siimultaneously at the ESP begining
-  if((digitalRead(db.conf.remote_pin)==LOW) && (digitalRead(db.conf.work_pin)==LOW) && (digitalRead(db.conf.steer_pin)==LOW)){
-    db.saveConfiguration();
-    db.saveSteerSettings();
-    db.saveSteerConfiguration();
-    setServerMode();
-  }
-  // Set up main objects
-  aog.begin(&db, &udpAutosteer, true, true);
 
   // Init Network
   WT32_ETH01_onEvent();
@@ -95,6 +105,56 @@ void setup(){
   WT32_ETH01_waitForConnect();
   Serial.print("AOG board started @ IP address: ");
   Serial.println(ETH.localIP());
+ #endif
+ #if MICRO_VERSION == 2
+  if(CrashReport){
+    while (!Serial);
+    Serial.print(CrashReport);
+  }
+
+  // Mount file system. Initialize.
+  if (!lfs.begin(960*1024)) {// checks that the LittFS program has started with the disk size specified
+    Serial.printf("Error starting %s\n", "PROGRAM FLASH DISK");
+    Serial.println("LittleFS Mount Failed");
+    return;
+  }
+  Serial.println("LittleFS initialized.");
+  
+  // Configure Resources from "configuration.json" file
+  db.begin(lfs);//(lfs, true) for reset configuration files
+
+  // Init Network
+  if(USING_DHCP){
+    // Start the Ethernet connection, using DHCP
+    Serial.print("Initialize Ethernet using DHCP => ");
+    Ethernet.begin();
+  }else{
+    // Start the Ethernet connection, using static IP
+    Serial.printf("Initialize Ethernet using static IP => ip:%d.%d.%d.%d, gateway:%d.%d.%d.%d\n", db.conf.eth_ip[0], db.conf.eth_ip[1], db.conf.eth_ip[2], db.conf.eth_ip[3], db.conf.eth_gateway[0], db.conf.eth_gateway[1], db.conf.eth_gateway[2], db.conf.eth_gateway[3]);
+    Ethernet.begin(db.conf.eth_ip, db.conf.eth_subnet, db.conf.eth_gateway);
+    Ethernet.setDNSServerIP(db.conf.eth_dns);
+  }
+  if (!Ethernet.waitForLocalIP(5000)){
+    Serial.println(F("Failed to configure Ethernet"));
+    if (!Ethernet.linkStatus()) Serial.println(F("Ethernet cable is not connected."));
+    // Stay here forever
+    while (true){delay(1000);}
+  }
+  delay(1000);
+  if(!USING_DHCP) delay(1000);
+  Serial.printf("Ethernet Initialised on IP %d.%d.%d.%d\n", Ethernet.localIP()[0], Ethernet.localIP()[1], Ethernet.localIP()[2], Ethernet.localIP()[3]);
+ #endif
+
+  // init webserver setup mode, only when the two are simultaneously to gnd at the ESP begining
+  if((digitalRead(5)==LOW) && (digitalRead(17)==LOW)){
+    db.saveConfiguration();
+    db.saveSteerSettings();
+    db.saveSteerConfiguration();
+    setServerMode();
+  }
+
+  // Set up main object
+  aog.begin(&db, &udpAutosteer, true, true);
 
   // Register UDP callback functions to server & ports
   if (udpAutosteer.listen(db.conf.server_autosteer_port)){

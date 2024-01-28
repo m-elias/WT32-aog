@@ -24,6 +24,7 @@ class ImuRvc: public Imu{
 public:
 	ImuRvc(JsonDB* _db, uint8_t _port=1){
 		db = _db;
+   #if MICRO_VERSION == 1
     if(_port > 8){//means it is not a Serial but a pin # for defining Teensy RX
       serial = &Serial1;//Rx on pin 15
       //serial->setRX(_port);//IMU SDA (18 in AIO-2.5/4)  SCL not needed. Not possible on 18, not a xbar pin.!!!
@@ -31,21 +32,31 @@ public:
 		else if(_port == 1) serial = &Serial1;//Rx on pin 0
 		else if(_port == 2) serial = &Serial2;//Rx on pin 7
 		else if(_port == 3) serial = &Serial;//Rx on pin 15
-    /*
+
+		serial->begin(115200, SERIAL_8N1, 2, 21);//fix baudrate as per datasheet, RX on pin 2 & TX on 21 of wt32, no need for TX
+   #endif
+   #if MICRO_VERSION == 2
+    if(_port > 8){//means it is not a Serial but a pin # for defining Teensy RX
+      serial = &Serial5;//Rx on pin 21
+    }
+		else if(_port == 1) serial = &Serial1;//Rx on pin 0
+		else if(_port == 2) serial = &Serial2;//Rx on pin 7
+		else if(_port == 3) serial = &Serial3;//Rx on pin 15
 		else if(_port == 4) serial = &Serial4;//Rx on pin 16
 		else if(_port == 5) serial = &Serial5;//Rx on pin 21
 		else if(_port == 6) serial = &Serial6;//Rx on pin 25
 		else if(_port == 7) serial = &Serial7;//Rx on pin 28
 		else if(_port == 8) serial = &Serial8;//Rx on pin 34
-    */
+
+    serial->begin(115200);
+   #endif
 
     q = Quaternion(0,0,0,0);
     rotation = Vector3(0,0,0);
     acceleration = Vector3(0,0,0);
 
-		//getOffset();
+		getOffset();
 		isOn = true;
-		serial->begin(115200, SERIAL_8N1, 2, 21);//fix baudrate as per datasheet, RX on pin 2 & TX on 21 of wt32, no need for TX
     delay(100);
     Serial.printf("Imu initialised on p: %d\n", _port);
 	}

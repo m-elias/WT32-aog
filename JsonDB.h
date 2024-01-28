@@ -16,9 +16,7 @@
 #ifndef JSONDB_H
 #define JSONDB_H
 
-#include <Arduino.h>
 #include "FS.h"
-
 #include <IPAddress.h>
 #include "ArduinoJson.h"
 
@@ -96,8 +94,9 @@ public:
   Configuration conf;
   SteerSettings steerS;
   SteerConfig steerC;
+  char configurationFile[50];
 
-  void begin(fs::FS &_fs, bool resetConfFile=false){
+  void begin(FS &_fs, bool resetConfFile=false){
     fs = &_fs;
     FIFO[0].file[0]='\0';
     FIFO[0].callback=[](JsonDocument& doc){};
@@ -106,7 +105,7 @@ public:
 
     if(resetConfFile) resetConfigurationFiles();
 
-    read(configurationFile,[&](JsonDocument& doc){
+    configReadCallback = [&](JsonDocument& doc){
       // Copy values from the JsonDocument to the Config
       strcpy(conf.webFolder, doc["webfolders"] | "/ers/static/");
       strcpy(conf.steerSettingsFile, doc["steerSettingsFile"] | "/steerSettings.json");
@@ -139,7 +138,9 @@ public:
       conf.work_pin = doc["workPin"] | 1;
       conf.reportTickRate = doc["reportTickRate"] | 10000; // run every 100ms (10Hz)
       conf.globalTickRate = doc["globalTickRate"] | 10000; // run every 100ms (10Hz)
-    });
+    };
+    
+    read(configurationFile,configReadCallback);
 
     read(conf.steerSettingsFile,[&](JsonDocument& doc){
       // Copy values from the JsonDocument to the Config
@@ -269,6 +270,21 @@ public:
 		}, 2);
   }
 
+  File open(const char* filename, uint8_t _type=0){
+    char type[4];
+    sprintf(type, "%c",operation[_type]);
+    return fs->open(filename, type);
+  }
+  
+  bool webConfiguration(uint8_t *data){
+    StaticJsonDocument<1024> doc;
+    DeserializationError error = deserializeJson(doc, data);
+    if (error) return false;
+    configReadCallback(doc);
+    saveConfiguration();
+    return true;
+  }
+
 	bool read(const char* filename, JsonFileHandler callback, uint8_t _type=0, uint16_t jsonSize=1024){
     char type[4];
     sprintf(type, "%c",operation[_type]);
@@ -319,7 +335,7 @@ private:
 	const static uint8_t bufferSize = 16;//number of reads that can be saved in the buffer
   const char operation[5] = "rwar";
 	uint8_t filesInQueue = 0;
-  char configurationFile[50];
+  JsonFileHandler configReadCallback;
 
 	struct QueueEntry{
 		char file[80];

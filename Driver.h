@@ -33,8 +33,12 @@ public:
   virtual void drive(float pwmDrive)=0;
   virtual void disengage()=0;
 
+  int8_t getCurrent(){
+    return 0;
+  }
+
 protected:
   uint8_t pin_pwm, pin_nc, pin_dir;
-  const uint8_t k = 255;
+  uint8_t k = 255;
 };
 #endif

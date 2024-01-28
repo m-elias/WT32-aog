@@ -40,8 +40,13 @@ public:
     else if(wireN == 2) i2c = &Wire2;
     */
 
+   #if MICRO_VERSION == 1
     if(strcmp(ARDUINO_BOARD,"WT32_ETH01")==0) i2c->begin(15,14,400000);//sda,scl,freq
     else i2c->begin();//21,22 for esp32
+   #endif
+   #if MICRO_VERSION == 1
+    i2c->begin();
+   #endif
 
     // Check ADC
     i2c->beginTransmission(pin);//i2cAddress
