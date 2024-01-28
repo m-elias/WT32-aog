@@ -41,6 +41,22 @@
     Serial 1 Out - UBX-NAV-RELPOSNED
     CFG-UART2-BAUDRATE 460800
     Serial 2 In RTCM
+
+    SW Configuration  #############################################################################################
+    - Arduino v2.2.1
+    - ArduinoJson v6.21.3
+    - SimpleKalmanFilter v0.1
+    For ESP32 family
+    - esp32 v2.0.11
+    - AsyncUDP_WT32_ETH01 v2.1.0
+    - ESPAsyncWebServer v1.2.3 (https://github.com/me-no-dev/ESPAsyncWebServer.git)
+    - ACAN_ESP32 1.1.0
+    For Teensy family
+    - Teensyduino v1.58.1
+    - QNEthernet v0.24.0 (using the one on the repository included with the code)
+    - AsyncUDP_Teensy41 v1.2.1 (using the one on the repository included with the code)
+    - AsyncWebServer_Teensy41 v1.6.2 (with all dependencies) (using the one on the repository included with the code)
+    - ACAN_T4 1.1.6
 */
 #define MICRO_VERSION     2 //1: WT32_ETH01; 2: Teensy41
 #define FIRMWARE_VERSION  "v0.0.1"
