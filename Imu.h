@@ -49,12 +49,20 @@ public:
 	}
 	
 	void getOffset(){
-		db->get("/imuOffset.json", [&](JsonDocument& doc){
-      JsonObject root = doc.to<JsonObject>();
-			pitch_offset = root.containsKey("pitch_offset")? doc["pitch_offset"].as<float>() : 0;
-			yaw_offset = root.containsKey("yaw_offset")? doc["yaw_offset"].as<float>() : 0;
-			roll_offset = root.containsKey("roll_offset")? doc["roll_offset"].as<float>() : 0;
-		});
+    if(!db->fs->exists("/imuOffset.json")){
+      File file = db->fs->open("/imuOffset.json", FILE_WRITE);
+      file.print("{\"pitch_offset\":0,\"yaw_offset\":0,\"roll_offset\":0}");
+      file.close();
+  		pitch_offset = 0;
+		  yaw_offset = 0;
+			roll_offset = 0;
+    }else{	db->get("/imuOffset.json", [&](JsonDocument& doc){
+        JsonObject root = doc.to<JsonObject>();
+	  		pitch_offset = root.containsKey("pitch_offset")? doc["pitch_offset"].as<float>() : 0;
+		  	yaw_offset = root.containsKey("yaw_offset")? doc["yaw_offset"].as<float>() : 0;
+			  roll_offset = root.containsKey("roll_offset")? doc["roll_offset"].as<float>() : 0;
+		  });
+    }
 	}
 	
 	Vector3 getOffsetV(){

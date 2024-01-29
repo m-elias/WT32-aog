@@ -58,8 +58,12 @@
     - AsyncWebServer_Teensy41 v1.6.2 (with all dependencies) (using the one on the repository included with the code)
     - ACAN_T4 1.1.6
 */
-#define MICRO_VERSION     2 //1: WT32_ETH01; 2: Teensy41
 #define FIRMWARE_VERSION  "v0.0.1"
+#ifdef ARDUINO_BOARD
+  #define MICRO_VERSION     1 //1: WT32_ETH01; 2: Teensy41
+ #else
+  #define MICRO_VERSION     2 //1: WT32_ETH01; 2: Teensy41
+#endif
 
 // Libraries setup
 #include <LittleFS.h>
