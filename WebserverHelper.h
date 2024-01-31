@@ -89,7 +89,7 @@ String listFiles(bool ishtml = true) {
       returnText += "<td><button onclick=\"downloadDeleteButton(\'" + String(foundfile.name()) + "\', \'download\')\">Download</button>";
       returnText += "<td><button onclick=\"downloadDeleteButton(\'" + String(foundfile.name()) + "\', \'delete\')\">Delete</button></tr>";
     } else {
-      returnText += "{\"name\": " + String(foundfile.name()) + " ,\"size\":\"" + humanReadableSize(foundfile.size()) + "\"},";
+      returnText += "{\"name\":\"" + String(foundfile.name()) + "\",\"size\":\"" + humanReadableSize(foundfile.size()) + "\"},";
     }
     foundfile = root.openNextFile();
   }

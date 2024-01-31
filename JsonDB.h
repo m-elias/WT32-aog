@@ -103,7 +103,7 @@ public:
     FIFO[0].type=0;
     FIFO[0].jsonSize=0;
 
-    if(resetConfFile) resetConfigurationFiles();
+    if(resetConfFile || !fs->exists(configurationFile)) resetConfigurationFiles();
 
     configReadCallback = [&](JsonDocument& doc){
       // Copy values from the JsonDocument to the Config
