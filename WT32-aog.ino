@@ -30,7 +30,7 @@
     CFG-RATE-MEAS - 100 ms -> 10 Hz
     CFG-UART1-BAUDRATE 460800
     Serial 1 In - RTCM (Correction Data from AOG)
-    Serial 1 Out - NMEA GGA
+    Serial 1 Out - NMEA GGA VTG
     CFG-UART2-BAUDRATE 460800
     Serial 2 Out - RTCM 1074,1084,1094,1230,4072.0 (Correction data for Heading F9P, Moving Base)  
     1124 is not needed (China’s BeiDou system) - Save F9P brain power 
