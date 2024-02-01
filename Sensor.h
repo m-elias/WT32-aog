@@ -36,7 +36,7 @@ protected:
 	JsonDB* db;
 	
 	void setAngle(){
-		float a = value*6805 - 6805 - db->steerS.wasOffset*(db->steerC.InvertWAS? 1 :-1);  // 1/2 of full scale
+		float a = value*6805 - 6805 - db->steerS.wasOffset*(db->steerC.InvertWAS? 1 :-1);  // 1/2 of full scale - to follow historic AOG convention
     angle = a*(db->steerC.InvertWAS? 1 :-1)*db->steerS.steerSensorCounts;//  ***** make sure that negative steer angle makes a left turn and positive value is a right turn *****
     if(angle<0) angle *= db->steerS.AckermanFix;
 	}

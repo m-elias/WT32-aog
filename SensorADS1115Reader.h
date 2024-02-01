@@ -44,7 +44,7 @@ public:
     if(strcmp(ARDUINO_BOARD,"WT32_ETH01")==0) i2c->begin(15,14,400000);//sda,scl,freq
     else i2c->begin();//21,22 for esp32
    #endif
-   #if MICRO_VERSION == 1
+   #if MICRO_VERSION == 2
     i2c->begin();
    #endif
 

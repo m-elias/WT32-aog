@@ -129,8 +129,8 @@ public:
       conf.imu_port = doc["imu"]["port"] | 1;
       conf.imu_tickRate = doc["imu"]["tickRate"] | 11000; // run every 10ms (100Hz)
       conf.was_type = doc["was"]["type"] | 1;
-      conf.was_resolution = doc["was"]["resolution"] | 12;
-      conf.was_pin = doc["was"]["pin"] | 35;
+      conf.was_resolution = doc["was"]["resolution"] | 10;
+      conf.was_pin = doc["was"]["pin"] | 14;
       conf.ls_pin = doc["ls"]["pin"] | 39;
       conf.ls_filter = doc["ls"]["filter"] | 2;
       conf.remote_pin = doc["remotePin"] | 39;
@@ -172,6 +172,7 @@ public:
   }
 
   bool resetConfigurationFiles(){
+    fs->remove(configurationFile);
 		File file = fs->open(configurationFile, FILE_WRITE);
     file.print("{\"reset\":1}");
     file.close();
@@ -293,8 +294,9 @@ public:
 		if(!file){
 			Serial.printf("Failed to open '%s' file\n", filename);
       if((strcmp(filename, "/configuration.json")==0) || (strcmp(filename, "/steerSettings.json")==0) || (strcmp(filename, "/steerconfiguration.json")==0)){
+        file.close();
         file = fs->open(filename, "w");
-        file.print("{\n\"v\":0\n}");
+        file.print("{\"reset\":1}");
         _type=1;
       } else	return false;
 		}
