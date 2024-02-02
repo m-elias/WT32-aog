@@ -883,12 +883,12 @@ void configureWebServer() {
   ArRequestHandlerFunction voR = [](AsyncWebServerRequest *request){};
   ArUploadHandlerFunction voU = [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {};
   // POST requests
-  server.on("/save", HTTP_POST, voR, voU, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
+  /*server.on("/save", HTTP_POST, voR, voU, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total){
     if (!checkUserWebAuth(request)) return request->requestAuthentication();
 
     if(db.webConfiguration(data)) request->send(201, "application/json", "{\"result\":\"ok\"}");
     else request->send(400, "application/json", "{\"error\":1}");
-  });
+  });*/
 
   server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest * request) {
     if (!checkUserWebAuth(request)) return request->requestAuthentication();
