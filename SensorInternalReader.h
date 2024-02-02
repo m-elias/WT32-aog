@@ -19,6 +19,10 @@
 
 #include "Sensor.h"
 #include <SimpleKalmanFilter.h>
+#include <ADC.h>
+#include <ADC_util.h>
+
+ADC* adcWAS = new ADC();  // ADC object for setting 16x oversampling medium speed 12 bit A/D object
 
 class SensorInternalReader: public Sensor {
 public:
@@ -26,6 +30,10 @@ public:
 		pin = _pin;
 		resolution = _resolution;
 		db=_db;
+    adcWAS->adc1->setAveraging(16);                                     // set number of averages
+    adcWAS->adc1->setResolution(12);                                    // set bits of resolution
+    adcWAS->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED);  // change the conversion speed
+    adcWAS->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED);      // change the sampling speed
     Serial.printf("Internal sensor reader initialised on p: %d\n", _pin);
 	}
 	
@@ -33,7 +41,7 @@ public:
   uint8_t resolution = 0;
 
 	void update(){
-		value = filter.updateEstimate(analogRead(pin))/(1 << resolution);// between 0-1.0 //2^resolution
+		value = filter.updateEstimate(adcWAS->adc1->analogRead(pin))/(1 << resolution);// between 0-1.0 //2^resolution
 		setAngle();
 	}
 private:
