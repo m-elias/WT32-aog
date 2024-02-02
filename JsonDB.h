@@ -110,32 +110,32 @@ public:
       strcpy(conf.webFolder, doc["webfolders"] | "/ers/static/");
       strcpy(conf.steerSettingsFile, doc["steerSettingsFile"] | "/steerSettings.json");
       strcpy(conf.steerConfigurationFile, doc["steerConfigurationFile"] | "/steerConfiguration.json");
-      conf.eth_ip = IPAddress(doc["eth"]["ip"][0] | 192, doc["eth"]["ip"][1] | 168, doc["eth"]["ip"][2] | 1, doc["eth"]["ip"][3] | 123);
-      conf.eth_gateway = IPAddress(doc["eth"]["gateway"][0] | 192, doc["eth"]["gateway"][1] | 168, doc["eth"]["gateway"][2] | 1, doc["eth"]["gateway"][3] | 1);
+      conf.eth_ip = IPAddress(doc["eth"]["ip"][0] | 192, doc["eth"]["ip"][1] | 168, doc["eth"]["ip"][2] | 5, doc["eth"]["ip"][3] | 123);
+      conf.eth_gateway = IPAddress(doc["eth"]["gateway"][0] | 192, doc["eth"]["gateway"][1] | 168, doc["eth"]["gateway"][2] | 5, doc["eth"]["gateway"][3] | 1);
       conf.eth_subnet = IPAddress(doc["eth"]["subnet"][0] | 255, doc["eth"]["subnet"][1] | 255, doc["eth"]["subnet"][2] | 255, doc["eth"]["subnet"][3] | 0);
       conf.eth_dns = IPAddress(doc["eth"]["dns"][0] | 8, doc["eth"]["dns"][1] | 8, doc["eth"]["dns"][2] | 8, doc["eth"]["dns"][3] | 8);
-      conf.server_ip = IPAddress(doc["server"]["ip"][0] | 192, doc["server"]["ip"][1] | 168, doc["server"]["ip"][2] | 1, doc["server"]["ip"][3] | 255);
+      conf.server_ip = IPAddress(doc["server"]["ip"][0] | 192, doc["server"]["ip"][1] | 168, doc["server"]["ip"][2] | 5, doc["server"]["ip"][3] | 255);
       conf.server_pcb_port = doc["server"]["pcbPort"] | 5120;
       conf.server_ntrip_port = doc["server"]["ntripPort"] | 2233;
       conf.server_autosteer_port = doc["server"]["autosteerPort"] | 8888;
       conf.server_destination_port = doc["server"]["destinationPort"] | 9999;
       conf.driver_type = doc["driver"]["type"] | 1;
-      conf.driver_pin[0] = doc["driver"]["pin"][0] | 0;
-      conf.driver_pin[1] = doc["driver"]["pin"][1] | 4;
-      conf.driver_pin[2] = doc["driver"]["pin"][2] | 12;
-      conf.gnss_port = doc["gnss"]["port"] | 2;
+      conf.driver_pin[0] = doc["driver"]["pin"][0] | 2;
+      conf.driver_pin[1] = doc["driver"]["pin"][1] | 3;
+      conf.driver_pin[2] = doc["driver"]["pin"][2] | 4;
+      conf.gnss_port = doc["gnss"]["port"] | 7;
       conf.gnss_baudRate = doc["gnss"]["baudRate"].as<uint32_t>() | 460800;
       conf.imu_type = doc["imu"]["type"] | 1;
-      conf.imu_port = doc["imu"]["port"] | 1;
+      conf.imu_port = doc["imu"]["port"] | 5;
       conf.imu_tickRate = doc["imu"]["tickRate"] | 11000; // run every 10ms (100Hz)
       conf.was_type = doc["was"]["type"] | 1;
       conf.was_resolution = doc["was"]["resolution"] | 12;
-      conf.was_pin = doc["was"]["pin"] | 35;
-      conf.ls_pin = doc["ls"]["pin"] | 39;
+      conf.was_pin = doc["was"]["pin"] | 14;
+      conf.ls_pin = doc["ls"]["pin"] | 41;
       conf.ls_filter = doc["ls"]["filter"] | 2;
-      conf.remote_pin = doc["remotePin"] | 39;
-      conf.steer_pin = doc["steerPin"] | 36;
-      conf.work_pin = doc["workPin"] | 1;
+      conf.remote_pin = doc["remotePin"] | 37;
+      conf.steer_pin = doc["steerPin"] | 32;
+      conf.work_pin = doc["workPin"] | 34;
       conf.reportTickRate = doc["reportTickRate"] | 10000; // run every 100ms (10Hz)
       conf.globalTickRate = doc["globalTickRate"] | 10000; // run every 100ms (10Hz)
     };
@@ -148,8 +148,8 @@ public:
       steerS.lowPWM = doc["lowPWM"] | 10;          // band of no action
       steerS.wasOffset = doc["wasOffset"] | 0;
       steerS.minPWM = doc["minPWM"] | 9;
-      steerS.highPWM = doc["highPWM"] | 60;        // max PWM value
-      steerS.steerSensorCounts = doc["steerSensorCounts"] | 30;
+      steerS.highPWM = doc["highPWM"] | 150;        // max PWM value
+      steerS.steerSensorCounts = doc["steerSensorCounts"] | 120;
       steerS.AckermanFix = doc["AckermanFix"] | 1;// sent as percent
     });
 
