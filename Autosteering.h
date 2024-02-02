@@ -65,7 +65,7 @@ public:
     if (packet.length() < 5) return;
     
     if (packet.data()[0] == 0x80 && packet.data()[1] == 0x81 && packet.data()[2] == 0x7F){ //Data
-      if(debugUdp) Serial.printf("Udp packet captured frame: %u, length: %zu\n", packet.data()[3], packet.length());
+      //if(debugUdp) Serial.printf("Udp packet captured frame: %u, length: %zu\n", packet.data()[3], packet.length());
       switch (packet.data()[3]) {
         case 254: // 0xFE Autosteering
           {
@@ -171,10 +171,16 @@ public:
             db->steerS.wasOffset = (packet.data()[10]);        //read was zero offset Lo
             db->steerS.wasOffset |= (packet.data()[11] << 8);  //read was zero offset Hi
             db->steerS.AckermanFix = (float)packet.data()[12] * 0.01;
+            
+            Serial.printf("\nSteerSettings: %3i=%.3f, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) | (packet.data()[11]<<8) ,db->steerS.wasOffset);
 
             position.imu->setOffset();
-
+            
+            Serial.printf("\nSteerSettings: %3i=%3i, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) |=  (packet.data()[11])<<8 ,db->steerS.wasOffset);
+            
             db->saveSteerSettings();
+
+            Serial.printf("\nSteerSettings: %3i=%3i, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) |=  (packet.data()[11])<<8 ,db->steerS.wasOffset);
             break;
           }
         case 251: // 0xFB - SteerConfig
