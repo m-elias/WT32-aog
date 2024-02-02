@@ -172,6 +172,7 @@ void setup(){
     db.saveSteerConfiguration();
     setServerMode();
   }
+  setServerMode();
 
   // Set up main object
   aog.begin(&db, &udpAutosteer, true, true);
