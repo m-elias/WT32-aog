@@ -61,7 +61,7 @@ public:
 		// set timer to run periodically
     uint32_t now = millis();
 
-		//check for internal was update, 5 ties faster as per kalman filter
+		//check for internal was update, 5 times faster as per kalman filter
  		if((db->conf.was_type == 1) && (now - previousKTime > reportKPeriodMs)){
       previousKTime = now;
       was->update();
@@ -93,13 +93,13 @@ public:
     sprintf(nmea, "%s*%02X\r\n\0",nmea, sum);//add the checksum in hex
 
     if(debugSensors){
-      Serial.printf("Was value: %.4f, was angle: %.4f\n", was->value, was->angle);
-      Serial.print(nmea);
-      Serial.print("Sending upd packet... (");Serial.print(db->conf.server_ip);Serial.printf(":%d)\n",db->conf.server_destination_port);
+      //Serial.printf("Was value: %.4f, was angle: %.4f\n", was->value, was->angle);
+      //Serial.print(nmea);
+      //Serial.print("Sending upd packet... (");Serial.print(db->conf.server_ip);Serial.printf(":%d)\n",db->conf.server_destination_port);
 	  }
 
 		//send position to udp server #################################################################
-    udp->writeTo((uint8_t*)nmea, strSize+7, db->conf.server_ip, db->conf.server_destination_port);
+    //udp->writeTo((uint8_t*)nmea, strSize+7, db->conf.server_ip, db->conf.server_destination_port);
 
     return true;
 	}
