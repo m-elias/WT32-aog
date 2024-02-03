@@ -37,8 +37,7 @@ protected:
 	
 	void setAngle(){
     uint8_t steerSensorCounts = 150;  // setting db->steerS.steerSensorCounts = 150 or using db->steerS.steerSensorCounts fails for unknown reason
-    //float a = value*13610 - 6805 - db->steerS.wasOffset*(db->steerC.InvertWAS? 1 :-1);  // *13610 to match "old" ADS1115 CPD & Offset values/scaling, 6805 is center (1/2 of full scale)
-    float a = value*6805 - 6805 - db->steerS.wasOffset*(db->steerC.InvertWAS? 1 :-1);  // 1/2 of full scale - to follow historic AOG convention
+		float a = value*13610 - 6805 - db->steerS.wasOffset*(db->steerC.InvertWAS? 1 :-1);  // *13610 to match "old" ADS1115 CPD & Offset values/scaling, 6805 is center (1/2 of full scale)
     angle = a*(db->steerC.InvertWAS? 1 :-1)/steerSensorCounts;//  ***** make sure that negative steer angle makes a left turn and positive value is a right turn *****
     Serial.printf(" value: %.3f a:%.2f CPD:%3i angle:%.2f", value, a, steerSensorCounts, angle);
     if(angle<0) angle *= db->steerS.AckermanFix;
