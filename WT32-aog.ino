@@ -141,7 +141,7 @@ void setup(){
   Serial.println("LittleFS initialized.");
   
   // Configure Resources from "configuration.json" file
-  db.begin(lfs);//(lfs, true) for reset configuration files
+  db.begin(lfs,true);//(lfs, true) for reset configuration files
 
   // Init Network
   if(USING_DHCP){

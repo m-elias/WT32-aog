@@ -26,7 +26,7 @@ ADC* adcWAS = new ADC();  // ADC object for setting 16x oversampling medium spee
 
 class SensorInternalReader: public Sensor {
 public:
-    SensorInternalReader(JsonDB* _db, uint8_t _pin, uint8_t _resolution=12, uint8_t filterConfig=5):filter(filterConfig, filterConfig, 0.01){
+    SensorInternalReader(JsonDB* _db, uint8_t _pin, uint8_t _resolution=12, uint8_t filterConfig=5):filter(filterConfig, filterConfig/10, 0.01){
 		pin = _pin;
 		resolution = _resolution;
 		db=_db;
@@ -34,6 +34,7 @@ public:
     adcWAS->adc1->setResolution(12);                                    // set bits of resolution
     adcWAS->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED);  // change the conversion speed
     adcWAS->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED);      // change the sampling speed
+    filter = SimpleKalmanFilter(filterConfig, filterConfig, 0.01);
     Serial.printf("Internal sensor reader initialised on p: %d\n", _pin);
 	}
 	

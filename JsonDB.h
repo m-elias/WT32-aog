@@ -172,6 +172,7 @@ public:
   }
 
   bool resetConfigurationFiles(){
+    fs->remove(configurationFile);
 		File file = fs->open(configurationFile, FILE_WRITE);
     file.print("{\"reset\":1}");
     file.close();
@@ -293,8 +294,9 @@ public:
 		if(!file){
 			Serial.printf("Failed to open '%s' file\n", filename);
       if((strcmp(filename, "/configuration.json")==0) || (strcmp(filename, "/steerSettings.json")==0) || (strcmp(filename, "/steerconfiguration.json")==0)){
+        file.close();
         file = fs->open(filename, "w");
-        file.print("{\n\"v\":0\n}");
+        file.print("{\"reset\":1}");
         _type=1;
       } else	return false;
 		}
