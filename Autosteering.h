@@ -45,13 +45,13 @@ public:
     delay(1000);//TODO MCB
    #if MICRO_VERSION == 2
     analogWriteFrequency(db->conf.driver_pin[0], 490);//TODO MCB define pwm frequency for esp next line is for teensy
-    /*
+
     //keep pulled high and drag low to activate, noise free safe
     pinMode(db->conf.work_pin, INPUT_PULLUP);
     pinMode(db->conf.steer_pin, INPUT_PULLUP);
     pinMode(db->conf.remote_pin, INPUT_PULLUP);
-    Serial.printf("Setted work pin: %d, steer pin: %d, remote pin: %d\n",db->conf.work_pin, db->conf.steer_pin, db->conf.remote_pin);
-    */
+    Serial.printf("Set work pin: %d, steer pin: %d, remote pin: %d\n",db->conf.work_pin, db->conf.steer_pin, db->conf.remote_pin);
+
    #endif
     // Create driver, interact with PWM #######################################################################################################
     (db->conf.driver_type==1)? driver = new DriverCytron(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]) : (db->conf.driver_type==2)? driver = new DriverKeya(db->conf.driver_pin[0]) : driver = new DriverIbt(db->conf.driver_pin[0], db->conf.driver_pin[1], db->conf.driver_pin[2]);
@@ -175,7 +175,6 @@ public:
             position.imu->setOffset();
             db->saveSteerSettings();
 
-            //Serial.printf("\nSteerSettings: %3i=%.3f, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) | (packet.data()[11]<<8) ,db->steerS.wasOffset);
             break;
           }
         case 251: // 0xFB - SteerConfig
@@ -223,7 +222,7 @@ public:
           {
             uint8_t helloFromAutoSteer[] = { 0x80, 0x81, 126, 126, 5, 0, 0, 0, 0, 0, 71 };
             // steering angle
-            int16_t sa = (int16_t)(position.was->angle * 100);//TODO: review units, rad or deg?
+            int16_t sa = (int16_t)(position.was->angle * 100);//TODO: review units, rad or deg? Matt: I don't think this number is used for anything important
             helloFromAutoSteer[5] = (uint8_t)sa;
             helloFromAutoSteer[6] = sa >> 8;
             // steering position (without was-offset)
@@ -316,20 +315,20 @@ public:
         return;// no need to follow, driving disengaged
       }
     }else if (db->steerC.SteerButton == 1){   //steer Button momentary
-        uint8_t reading = digitalRead(db->conf.steer_pin);
-        if (!reading && previous) steerSwitch = steerSwitch? 0 : 1;//toggle steerSwitch
-        previous = reading;
-      }else{ //No steer switch and no steer button. Listen GUI/AIO
-        if (guidanceStatusChanged && guidanceStatus && steerSwitch && !previous){
-          steerSwitch = 0;
-          previous = 1;
-        }
-        // This will set steerswitch off and make the above check wait until the guidanceStatus has gone to 0
-        if (guidanceStatusChanged && !guidanceStatus && !steerSwitch && previous){
-          steerSwitch = 1;
-          previous = 0;
-        }
+      uint8_t reading = digitalRead(db->conf.steer_pin);
+      if (!reading && previous) steerSwitch = steerSwitch? 0 : 1;//toggle steerSwitch
+      previous = reading;
+    }else{ //No steer switch and no steer button. Listen GUI/AIO
+      if (guidanceStatusChanged && guidanceStatus && steerSwitch && !previous){
+        steerSwitch = 0;
+        previous = 1;
       }
+      // This will set steerswitch off and make the above check wait until the guidanceStatus has gone to 0
+      if (guidanceStatusChanged && !guidanceStatus && !steerSwitch && previous){
+        steerSwitch = 1;
+        previous = 0;
+      }
+    }
 
     // Do pid and command angle change
     _changeWheelAngle(); //TODO: review angle unit (steerAngleSetPoint) rad or deg?.
