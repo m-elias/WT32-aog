@@ -22,10 +22,11 @@
 
 class SensorInternalReader: public Sensor {
 public:
-    SensorInternalReader(JsonDB* _db, uint8_t _pin, uint8_t _resolution=12, uint8_t filterConfig=5):filter(filterConfig, filterConfig/10, 0.01){
+  SensorInternalReader(JsonDB* _db, uint8_t _pin, uint8_t _resolution=12, uint8_t filterConfig=5):filter(filterConfig, filterConfig/10, 0.01){
 		pin = _pin;
 		resolution = _resolution;
 		db=_db;
+    filter = SimpleKalmanFilter(filterConfig, filterConfig, 0.01);
     Serial.printf("Internal sensor reader initialised on p: %d\n", _pin);
 	}
 	
