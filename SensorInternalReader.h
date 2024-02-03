@@ -32,11 +32,6 @@ public:
 		resolution = _resolution;
 		db=_db;
     analogReadResolution(resolution);
-    //analogReadAveraging(16);
-    //adcWAS->adc1->setAveraging(16);                                     // set number of averages
-    //adcWAS->adc1->setResolution(12);                                    // set bits of resolution
-    //adcWAS->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED);  // change the conversion speed
-    //adcWAS->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED);      // change the sampling speed
     filter = SimpleKalmanFilter(filterConfig, filterConfig, 0.01);
     Serial.printf("Internal sensor reader initialised on p: %d\n", _pin);
 	}
@@ -45,7 +40,6 @@ public:
   uint8_t resolution = 0;
 
   void update(){
-    //value = filter.updateEstimate(adcWAS->adc1->analogRead(pin))/(1 << resolution);// between 0-1.0 //2^resolution
     value = filter.updateEstimate(analogRead(pin))/(1 << resolution);// between 0-1.0 //2^resolution
     setAngle();
   }
