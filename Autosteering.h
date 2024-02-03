@@ -172,15 +172,10 @@ public:
             db->steerS.wasOffset |= (packet.data()[11] << 8);  //read was zero offset Hi
             db->steerS.AckermanFix = (float)packet.data()[12] * 0.01;
             
-            Serial.printf("\nSteerSettings: %3i=%.3f, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) | (packet.data()[11]<<8) ,db->steerS.wasOffset);
-
             position.imu->setOffset();
-            
-            Serial.printf("\nSteerSettings: %3i=%3i, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) |=  (packet.data()[11])<<8 ,db->steerS.wasOffset);
-            
             db->saveSteerSettings();
 
-            Serial.printf("\nSteerSettings: %3i=%3i, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) |=  (packet.data()[11])<<8 ,db->steerS.wasOffset);
+            //Serial.printf("\nSteerSettings: %3i=%.3f, %3i=%3i\n\n", packet.data()[9], db->steerS.steerSensorCounts, (packet.data()[10]) | (packet.data()[11]<<8) ,db->steerS.wasOffset);
             break;
           }
         case 251: // 0xFB - SteerConfig

@@ -93,7 +93,7 @@ public:
     sprintf(nmea, "%s*%02X\r\n\0",nmea, sum);//add the checksum in hex
 
     if(debugSensors){
-      //Serial.printf("Was value: %.4f, was angle: %.4f\n", was->value, was->angle);
+      Serial.printf("Was value: %.4f, was angle: %.4f\n", was->value, was->angle);
       //Serial.print(nmea);
       //Serial.print("Sending upd packet... (");Serial.print(db->conf.server_ip);Serial.printf(":%d)\n",db->conf.server_destination_port);
 	  }

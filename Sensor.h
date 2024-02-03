@@ -32,16 +32,15 @@ public:
 	virtual void update()=0;
 	
 protected:
-  uint8_t pin=20;
-	JsonDB* db;
+  uint8_t pin=14; // default v4-A0 WAS pin
+  JsonDB* db;
 	
-	void setAngle(){
-    uint8_t steerSensorCounts = 150;  // setting db->steerS.steerSensorCounts = 150 or using db->steerS.steerSensorCounts fails for unknown reason
-		float a = value*13610 - 6805 - db->steerS.wasOffset*(db->steerC.InvertWAS? 1 :-1);  // *13610 to match "old" ADS1115 CPD & Offset values/scaling, 6805 is center (1/2 of full scale)
-    angle = a*(db->steerC.InvertWAS? 1 :-1)/steerSensorCounts;//  ***** make sure that negative steer angle makes a left turn and positive value is a right turn *****
-    Serial.printf(" value: %.3f a:%.2f CPD:%3i angle:%.2f", value, a, steerSensorCounts, angle);
+  void setAngle(){
+    float a = value*13610 - 6805 - db->steerS.wasOffset*(db->steerC.InvertWAS? 1 :-1);  // *13610 to match "old" ADS1115 CPD & Offset values/scaling, 6805 is center (1/2 of full scale)
+    angle = a*(db->steerC.InvertWAS? 1 :-1)/db->steerS.steerSensorCounts;//  ***** make sure that negative steer angle makes a left turn and positive value is a right turn *****
+    //Serial.printf(" value: %.3f a:%.2f CPD:%.1f angle:%.2f", value, a, db->steerS.steerSensorCounts, angle);
     if(angle<0) angle *= db->steerS.AckermanFix;
-    Serial.printf(" angle:%.2f\n", angle);
-	}
+    //Serial.printf(" angle:%.2f\n", angle);
+  }
 };
 #endif
